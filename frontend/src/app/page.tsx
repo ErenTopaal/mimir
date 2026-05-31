@@ -113,9 +113,9 @@ export default function Page() {
                 </h2>
                 <div className="space-y-2 text-base text-foreground/80">
                   <p className="leading-tight">
-                    AvaxBench is a benchmark that evaluates whether AI agents can
-                    detect, patch, and exploit high-severity vulnerabilities in
-                    Avalanche smart contracts.
+                    AvaxBench is a benchmark that evaluates whether AI agents
+                    can detect, patch, and exploit high-severity vulnerabilities
+                    in Avalanche smart contracts.
                   </p>
                   <p className="leading-tight">
                     This interface focuses on detection and only reports

@@ -270,10 +270,10 @@ async def main() -> None:
         work_dir = Path(tmpdir)
         upload_zip_path, openai_token, key_mode = _unpack_bundle(bundle, work_dir)
 
-        if AUDIT_DIR.exists():
+        if AUDIT_DIR.exists():  # noqa: ASYNC240
             shutil.rmtree(AUDIT_DIR)
 
-        AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+        AUDIT_DIR.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
         with zipfile.ZipFile(upload_zip_path, 'r') as zf:
             zf.extractall(AUDIT_DIR)  # noqa: S202
 

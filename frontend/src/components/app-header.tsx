@@ -30,9 +30,7 @@ export function AppHeader({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-1">
-        {left}
-      </div>
+      <div className="flex min-w-0 items-center gap-1">{left}</div>
       <div className="flex min-w-0 items-center justify-center overflow-hidden">
         {showLogo ? (
           <Link
