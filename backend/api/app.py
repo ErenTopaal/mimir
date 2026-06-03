@@ -9,6 +9,7 @@ from api.core.config import settings
 from api.core.rabbitmq import RabbitMQPublisher
 
 from .routers.v1 import router as v1_router
+from .routers.v1.widget import router as widget_router
 
 
 @asynccontextmanager
@@ -46,3 +47,4 @@ app.add_middleware(
     allow_headers=['*'],
 )
 app.include_router(v1_router)
+app.include_router(widget_router)

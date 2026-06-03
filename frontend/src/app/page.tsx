@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { AppFooter } from "@/components/app-footer"
 import { AppHeader } from "@/components/app-header"
 import { FileUploader } from "@/components/file-uploader"
@@ -25,6 +25,8 @@ import { inferPackageName } from "@/lib/upload-utils"
 import { createZipFromFiles } from "@/lib/zip"
 import { useUploadStore } from "@/store/upload-store"
 
+const AVALANCHE_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+
 export default function Page() {
   const router = useRouter()
   const { files, packageName, setUpload, clearUpload } = useUploadStore()
@@ -36,6 +38,9 @@ export default function Page() {
     "avaxbench.recentJobs.v1",
     [],
   )
+  const [universalInput, setUniversalInput] = useState("")
+  const [universalNotice, setUniversalNotice] = useState<string | null>(null)
+  const fileUploaderRef = useRef<HTMLDivElement>(null)
   const {
     isAuthorized,
     isLoading: isAuthLoading,
@@ -65,6 +70,26 @@ export default function Page() {
       setOpenaiKey(event.target.value)
     },
     [setOpenaiKey],
+  )
+
+  const handleUniversalInput = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return
+      const value = universalInput.trim()
+      if (!value) return
+      setUniversalNotice(null)
+      if (AVALANCHE_ADDRESS_RE.test(value)) {
+        router.push(`/results?chain=avalanche&address=${value}`)
+        return
+      }
+      if (value.includes("github.com")) {
+        setUniversalNotice("GitHub URL auditing coming soon.")
+        return
+      }
+      // Focus file uploader for any other input
+      fileUploaderRef.current?.querySelector("input")?.focus()
+    },
+    [universalInput, router],
   )
 
   const handleSubmit = async () => {
@@ -127,14 +152,36 @@ export default function Page() {
             </div>
 
             <div className="space-y-6 lg:col-span-2">
-              <FileUploader
-                onFilesSelected={handleFilesSelected}
-                files={files}
-                selectedLabel={selectedLabel}
-                fileCount={fileCount}
-                disabled={isSubmitting}
-                onClear={clearUpload}
-              />
+              <div className="grid gap-1">
+                <Label htmlFor="universal-input" className="text-xs text-foreground">
+                  Address or GitHub URL
+                </Label>
+                <Input
+                  id="universal-input"
+                  type="text"
+                  placeholder="0x… address or github.com/…"
+                  value={universalInput}
+                  onChange={(e) => {
+                    setUniversalInput(e.target.value)
+                    setUniversalNotice(null)
+                  }}
+                  onKeyDown={handleUniversalInput}
+                />
+                {universalNotice && (
+                  <p className="text-xs text-muted-foreground">{universalNotice}</p>
+                )}
+              </div>
+
+              <div ref={fileUploaderRef}>
+                <FileUploader
+                  onFilesSelected={handleFilesSelected}
+                  files={files}
+                  selectedLabel={selectedLabel}
+                  fileCount={fileCount}
+                  disabled={isSubmitting}
+                  onClear={clearUpload}
+                />
+              </div>
 
               <div className="grid gap-3 text-xs text-muted-foreground">
                 {!isConfigLoading && !keyPredefined && (
