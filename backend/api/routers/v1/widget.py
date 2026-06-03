@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import select
@@ -12,6 +13,7 @@ from api.models.job import Job, JobStatus
 
 
 router = APIRouter(tags=['widget'])
+DbSessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 AVALANCHE_ADDRESS_RE = re.compile(r'^0x[0-9a-fA-F]{40}$')
 
@@ -66,7 +68,7 @@ async def get_widget_js() -> Response:
 async def get_badge_svg(
     chain: str,
     address: str,
-    session: AsyncSession = Depends(get_db),
+    session: DbSessionDep,
 ) -> Response:
     """Generate a shields.io-style SVG badge."""
     if not AVALANCHE_ADDRESS_RE.match(address):

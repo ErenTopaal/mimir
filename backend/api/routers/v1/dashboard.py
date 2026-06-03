@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from api.models.job import Job, JobStatus
 
 
 router = APIRouter(prefix='/dashboard', tags=['dashboard'])
+DbSessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 class DashboardStats(BaseModel):
@@ -38,7 +40,7 @@ class DashboardData(BaseModel):
 @router.get('/{chain}', response_model=DashboardData)
 async def get_dashboard(
     chain: str,
-    session: AsyncSession = Depends(get_db),
+    session: DbSessionDep,
 ) -> DashboardData:
     # All permalink jobs for this chain
     prefix = f'permalink:{chain}:'

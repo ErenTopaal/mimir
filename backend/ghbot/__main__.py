@@ -30,7 +30,7 @@ app = FastAPI(title='avaxbench-ghbot', default_response_class=ORJSONResponse)
 def _verify_signature(body: bytes, signature: str) -> bool:
     if not GITHUB_WEBHOOK_SECRET:
         return True
-    expected = 'sha256=' + hmac.new(
+    expected = 'sha256=' + hmac.new(  # type: ignore[attr-defined]
         GITHUB_WEBHOOK_SECRET.encode(), body, hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
@@ -72,8 +72,8 @@ async def _post_pr_comment(repo_full_name: str, pr_number: int, body: str) -> No
 @app.post('/webhook')
 async def handle_webhook(
     request: Request,
-    x_github_event: str = Header(default=''),
-    x_hub_signature_256: str = Header(default=''),
+    x_github_event: str = Header(default=''),  # noqa: FAST002
+    x_hub_signature_256: str = Header(default=''),  # noqa: FAST002
 ) -> dict:
     body = await request.body()
 

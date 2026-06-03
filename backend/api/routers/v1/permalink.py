@@ -7,7 +7,7 @@ import re
 import tarfile
 import uuid
 import zipfile
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
 import orjson
@@ -24,6 +24,9 @@ from api.secrets.impl import secret_storage
 
 
 router = APIRouter(prefix='/permalink', tags=['permalink'])
+
+DbSessionDep = Annotated[AsyncSession, Depends(get_db)]
+PublisherDep = Annotated[RabbitMQPublisher, Depends(get_rabbitmq_publisher)]
 
 AVALANCHE_ADDRESS_RE = re.compile(r'^0x[0-9a-fA-F]{40}$')
 
@@ -61,7 +64,7 @@ async def _fetch_source_from_snowtrace(chain: str, address: str) -> dict[str, st
             r = await client.get(config['api_url'], params=params)
             r.raise_for_status()
             data = r.json()
-        except Exception:
+        except (httpx.HTTPError, ValueError):
             return None
 
     if data.get('status') != '1' or not data.get('result'):
@@ -82,14 +85,14 @@ async def _fetch_source_from_snowtrace(chain: str, address: str) -> dict[str, st
             parsed = orjson.loads(inner)
             for fname, content in parsed.get('sources', {}).items():
                 files[fname] = content.get('content', '')
-        except Exception:
+        except (ValueError, KeyError):
             files[f'{contract_name}.sol'] = source_code
     elif source_code.startswith('{'):
         try:
             parsed = orjson.loads(source_code)
             for fname, content in parsed.get('sources', {}).items():
                 files[fname] = content.get('content', '')
-        except Exception:
+        except (ValueError, KeyError):
             files[f'{contract_name}.sol'] = source_code
     else:
         files[f'{contract_name}.sol'] = source_code
@@ -109,8 +112,8 @@ def _create_zip_from_sources(files: dict[str, str]) -> bytes:
 async def get_permalink(
     chain: str,
     address: str,
-    session: AsyncSession = Depends(get_db),
-    publisher: RabbitMQPublisher = Depends(get_rabbitmq_publisher),
+    session: DbSessionDep,
+    publisher: PublisherDep,
 ) -> PermalinkResult:
     if chain not in CHAIN_CONFIGS:
         raise HTTPException(status_code=400, detail=f'Unsupported chain: {chain}')
