@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bunx next dev",
+    "dev": "bunx next dev --port 34291",
     "build": "bunx next build",
     "start": "bunx next start",
     "lint": "biome check",

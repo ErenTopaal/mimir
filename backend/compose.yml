@@ -120,14 +120,14 @@ services:
       - .env
     environment:
       BACKEND_WEB_HOST: 0.0.0.0
-      BACKEND_WEB_PORT: 1337
+      BACKEND_WEB_PORT: 27413
       DATABASE_DSN: postgresql+asyncpg://${POSTGRES_USER:-avaxbench}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-avaxbench}
       BACKEND_SECRETS_BACKEND: http
       BACKEND_SECRETS_BACKEND_ARGUMENTS: >
         {"url":"http://secretsvc:8081","token":"${SECRETS_TOKEN_WO:?set SECRETS_TOKEN_WO}"}
       RABBITMQ_DSN: amqp://${RABBITMQ_USER:-avaxbench}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
     ports:
-      - "127.0.0.1:${BACKEND_WEB_PORT:-1337}:1337"
+      - "127.0.0.1:${BACKEND_WEB_PORT:-27413}:1337"
     depends_on:
       postgres:
         condition: service_healthy
