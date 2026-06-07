@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     AUTH_BACKEND: str | None = None
     AUTH_BACKEND_ARGUMENTS: dict[str, str] = Field(default_factory=dict)
 
+    SNOWTRACE_API_KEY: str | None = None
+
     @field_validator('RABBITMQ_QUEUE_SUFFIX', mode='before')
     @classmethod
     def _normalize_queue_suffix(cls, value: str | None) -> str | None:

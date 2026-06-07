@@ -48,7 +48,7 @@ class PermalinkResult(BaseModel):
     result: dict | None = None
 
 
-async def _fetch_source_from_snowtrace(chain: str, address: str) -> dict[str, str] | None:
+async def _fetch_source_from_snowtrace(chain: str, address: str, api_key: str | None = None) -> dict[str, str] | None:
     """Fetch verified source from Snowtrace API. Returns {filename: source} or None."""
     config = CHAIN_CONFIGS.get(chain)
     if not config:
@@ -59,6 +59,8 @@ async def _fetch_source_from_snowtrace(chain: str, address: str) -> dict[str, st
         'action': 'getsourcecode',
         'address': address,
     }
+    if api_key:
+        params['apikey'] = api_key
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
             r = await client.get(config['api_url'], params=params)
@@ -141,7 +143,7 @@ async def get_permalink(
         return PermalinkResult(status='scanning', job_id=str(in_progress.id))
 
     # Fetch source from Snowtrace
-    source_files = await _fetch_source_from_snowtrace(chain, address)
+    source_files = await _fetch_source_from_snowtrace(chain, address, api_key=settings.SNOWTRACE_API_KEY)
     if not source_files:
         return PermalinkResult(status='source_not_available')
 
