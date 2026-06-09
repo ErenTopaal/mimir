@@ -30,6 +30,11 @@ dev = [
     "ruff>=0.14.14",
     "ty>=0.0.14",
     "tzdata>=2025.3",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.0",
+    "httpx>=0.28.1",
+    "aiosqlite>=0.21.0",
+    "respx>=0.22.0",
 ]
 
 [tool.ruff]
@@ -67,3 +72,7 @@ combine-as-imports = false
 src.exclude = []
 # uvloop imports, todo: remove this
 rules.unused-ignore-comment = "ignore"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
