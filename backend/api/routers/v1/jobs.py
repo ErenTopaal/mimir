@@ -16,7 +16,7 @@ from api.core.impl import auth_backend
 from api.core.rabbitmq import RabbitMQPublisher, get_rabbitmq_publisher
 from api.models.job import Job, JobStatus
 from api.schemas.job import JobHistoryItem, JobStatusResponse, PatchJobForm, StartJobForm, StartJobResponse
-from api.secrets.impl import secret_storage
+import api.secrets.impl as _secrets_impl
 from api.util.aes_gcm import derive_key, encrypt_token
 from api.util.secrets_bundle import build_secret_bundle
 
@@ -153,7 +153,7 @@ async def start_job(
 
     try:
         bundle = build_secret_bundle(upload=form.file, openai_token=openai_token, key_mode=key_mode)
-        await secret_storage.save_secret(secret_ref, bundle)
+        await _secrets_impl.secret_storage.save_secret(secret_ref, bundle)
 
         job = Job(
             id=job_id,
@@ -176,7 +176,7 @@ async def start_job(
             )
         except Exception as err:
             with suppress(Exception):
-                await secret_storage.delete_secret(secret_ref)
+                await _secrets_impl.secret_storage.delete_secret(secret_ref)
             await session.delete(job)
             await session.commit()
             raise HTTPException(
