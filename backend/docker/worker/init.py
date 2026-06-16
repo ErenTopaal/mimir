@@ -3,6 +3,7 @@ try:
 except ImportError:
     from asyncio import run
 
+import base64
 import io
 import json
 import os
@@ -26,6 +27,7 @@ RESULTSVC_PORT = os.getenv('RESULTSVC_PORT', '8083')
 RESULTSVC_JOB_TOKEN = os.getenv('RESULTSVC_JOB_TOKEN', '')
 OAI_PROXY_BASE_URL = os.getenv('OAI_PROXY_BASE_URL', '').strip()
 OAI_PROXY_WIRE_API = os.getenv('OAI_PROXY_WIRE_API', 'responses').strip()
+CODEX_AUTH_JSON = os.getenv('CODEX_AUTH_JSON', '').strip()
 
 AGENT_DIR = Path(os.getenv('AGENT_DIR') or str(Path.home()))
 AUDIT_DIR = Path(os.getenv('AUDIT_DIR') or str(AGENT_DIR / 'audit'))
@@ -39,6 +41,20 @@ RUNNER_DIR = Path(os.getenv('AVAX_BENCH_RUNNER_DIR') or '/opt/avaxbench/worker_r
 DETECT_MD_PATH = RUNNER_DIR / 'detect.txt'
 MODEL_MAP_PATH = RUNNER_DIR / 'model_map.json'
 CODEX_RUNNER_SH = RUNNER_DIR / 'run_codex_detect.sh'
+
+
+def _write_codex_auth_json(*, home: Path) -> None:
+    """Decode CODEX_AUTH_JSON and write it to ~/.codex/auth.json for subscription mode."""
+    if not CODEX_AUTH_JSON:
+        return
+    try:
+        content = base64.b64decode(CODEX_AUTH_JSON)
+    except Exception as err:
+        msg = f'Failed to decode CODEX_AUTH_JSON: {err}'
+        raise RuntimeError(msg) from err
+    auth_dir = home / '.codex'
+    auth_dir.mkdir(parents=True, exist_ok=True)
+    (auth_dir / 'auth.json').write_bytes(content)
 
 
 def _write_codex_proxy_config(*, home: Path) -> None:
@@ -173,6 +189,10 @@ def _run_codex_detect(*, openai_token: str, key_mode: str) -> Path:
     env['SUBMISSION_DIR'] = str(SUBMISSION_DIR)
     env['LOGS_DIR'] = str(LOGS_DIR)
 
+    # Subscription mode: write auth.json from env var if provided.
+    if key_mode == 'subscription':
+        _write_codex_auth_json(home=AGENT_DIR)
+
     # Proxy-token mode: write Codex config to route requests through oai_proxy.
     if key_mode in {'proxy', 'proxy_static'}:
         _write_codex_proxy_config(home=AGENT_DIR)
@@ -242,7 +262,7 @@ def _unpack_bundle(bundle: bytes, work_dir: Path) -> tuple[Path, str, str]:
     if not isinstance(key_mode, str):
         key_mode = 'direct'
     key_mode = key_mode.strip().lower()
-    if key_mode not in {'direct', 'proxy', 'proxy_static'}:
+    if key_mode not in {'direct', 'proxy', 'proxy_static', 'subscription'}:
         key_mode = 'direct'
 
     if not upload_zip_path.exists():
@@ -273,10 +293,10 @@ async def main() -> None:
         work_dir = Path(tmpdir)
         upload_zip_path, openai_token, key_mode = _unpack_bundle(bundle, work_dir)
 
-        if AUDIT_DIR.exists():  # noqa: ASYNC240
+        if AUDIT_DIR.exists():
             shutil.rmtree(AUDIT_DIR)
 
-        AUDIT_DIR.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+        AUDIT_DIR.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(upload_zip_path, 'r') as zf:
             zf.extractall(AUDIT_DIR)  # noqa: S202
 

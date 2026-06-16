@@ -48,6 +48,8 @@ class DockerBackend(BackendABC):
         }
         if settings.INSTANCER_OAI_PROXY_BASE_URL:
             env['OAI_PROXY_BASE_URL'] = settings.INSTANCER_OAI_PROXY_BASE_URL
+        if settings.INSTANCER_CODEX_AUTH_JSON:
+            env['CODEX_AUTH_JSON'] = settings.INSTANCER_CODEX_AUTH_JSON
 
         # Mount host Codex auth.json into the worker for subscription auth mode.
         # The worker home is /home/agent (set in the base Dockerfile via ENV HOME).

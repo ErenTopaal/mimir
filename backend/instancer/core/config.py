@@ -83,6 +83,14 @@ class Settings(BaseSettings):
     # codex exec authenticates via the Codex CLI subscription rather than an API key.
     INSTANCER_CODEX_AUTH_PATH: str | None = None
 
+    # Optional: base64-encoded content of ~/.codex/auth.json for subscription auth mode.
+    # Alternative to INSTANCER_CODEX_AUTH_PATH when file mounting isn't available.
+    # Accepts both BACKEND_CODEX_AUTH_JSON and INSTANCER_CODEX_AUTH_JSON as env var names.
+    INSTANCER_CODEX_AUTH_JSON: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices('INSTANCER_CODEX_AUTH_JSON', 'BACKEND_CODEX_AUTH_JSON'),
+    )
+
     # Optional: only needed when the backend is configured for proxy-token mode.
     INSTANCER_OAI_PROXY_BASE_URL: str | None = Field(
         default=None,
