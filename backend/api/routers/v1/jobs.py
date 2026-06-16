@@ -9,6 +9,7 @@ from httpx import AsyncClient
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import api.secrets.impl as _secrets_impl
 from api.core.config import settings
 from api.core.const import ALLOWED_MODELS
 from api.core.deps import OptionalTokenDep, TokenDep, get_db
@@ -16,7 +17,6 @@ from api.core.impl import auth_backend
 from api.core.rabbitmq import RabbitMQPublisher, get_rabbitmq_publisher
 from api.models.job import Job, JobStatus
 from api.schemas.job import JobHistoryItem, JobStatusResponse, PatchJobForm, StartJobForm, StartJobResponse
-import api.secrets.impl as _secrets_impl
 from api.util.aes_gcm import derive_key, encrypt_token
 from api.util.secrets_bundle import build_secret_bundle
 
@@ -73,15 +73,20 @@ def _require_allowed_model(model: str) -> None:
 
 def _resolve_openai_key(form: StartJobForm) -> str | None:
     # Determine which OpenAI key mode to use:
-    # 1. BACKEND_USE_PROXY_STATIC_KEY: Use "STATIC" marker, real key stays in oai_proxy only
-    # 2. BACKEND_STATIC_OAI_KEY: Backend knows the key (legacy mode)
-    # 3. User-provided key
+    # 1. BACKEND_OAI_KEY_MODE=subscription: Worker uses Codex CLI auth.json, no key needed
+    # 2. BACKEND_USE_PROXY_STATIC_KEY: Use "STATIC" marker, real key stays in oai_proxy only
+    # 3. BACKEND_STATIC_OAI_KEY: Backend knows the key (legacy mode)
+    # 4. User-provided key
+    if settings.BACKEND_OAI_KEY_MODE == 'subscription':
+        return 'subscription'
     static_key = settings.BACKEND_STATIC_OAI_KEY.get_secret_value() if settings.BACKEND_STATIC_OAI_KEY else None
     return static_key or form.openai_key
 
 
 async def _maybe_validate_user_key(*, form: StartJobForm, openai_key: str | None) -> None:
-    # Validate user-provided keys (skip if using static keys)
+    # Validate user-provided keys (skip if using static keys or subscription mode)
+    if settings.BACKEND_OAI_KEY_MODE == 'subscription':
+        return
     if settings.BACKEND_USE_PROXY_STATIC_KEY:
         return
     if settings.BACKEND_STATIC_OAI_KEY is not None:
@@ -104,6 +109,10 @@ async def _maybe_validate_user_key(*, form: StartJobForm, openai_key: str | None
 
 def _encode_openai_token(*, openai_key: str, use_proxy_static: bool, use_proxy_tokens: bool) -> tuple[str, str]:
     """Return (openai_token, key_mode) for the worker bundle."""
+    if settings.BACKEND_OAI_KEY_MODE == 'subscription':
+        # Worker will authenticate via ~/.codex/auth.json; no real key transmitted.
+        return 'subscription', 'subscription'
+
     if use_proxy_static:
         # Marker token (not a real credential). The proxy substitutes its static key.
         return 'STATIC', 'proxy_static'
@@ -136,7 +145,7 @@ async def start_job(
     use_proxy_tokens = settings.BACKEND_OAI_KEY_MODE == 'proxy'
     openai_key = _resolve_openai_key(form)
 
-    if not use_proxy_static and not openai_key:
+    if not use_proxy_static and settings.BACKEND_OAI_KEY_MODE != 'subscription' and not openai_key:
         raise HTTPException(status_code=412, detail='openai_key is required')
 
     await _maybe_validate_user_key(form=form, openai_key=openai_key)

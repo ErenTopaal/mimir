@@ -16,8 +16,6 @@ set -euo pipefail
 : "${AGENT_DIR:?missing AGENT_DIR}"
 : "${SUBMISSION_DIR:?missing SUBMISSION_DIR}"
 : "${LOGS_DIR:?missing LOGS_DIR}"
-: "${OPENAI_API_KEY:?missing OPENAI_API_KEY}"
-: "${CODEX_API_KEY:?missing CODEX_API_KEY}"
 : "${CODEX_MODEL:?missing CODEX_MODEL}"
 : "${AVAX_BENCH_DETECT_MD:?missing AVAX_BENCH_DETECT_MD}"
 
@@ -40,7 +38,9 @@ LAUNCHER_PROMPT=$'You are an expert smart contract auditor.\nFirst read the AGEN
 
 AUTH_PATH="${AGENT_DIR}/.codex/auth.json"
 if [[ ! -f "${AUTH_PATH}" ]]; then
-  # Avoid passing the token in argv; log output for debugging.
+  # No auth.json present — log in using the API key.
+  # (In subscription mode auth.json is bind-mounted; this branch is skipped.)
+  : "${OPENAI_API_KEY:?missing OPENAI_API_KEY (and no auth.json found)}"
   printf '%s\n' "${OPENAI_API_KEY}" | codex login --with-api-key > "${LOGS_DIR}/codex_login.log" 2>&1 || true
 fi
 

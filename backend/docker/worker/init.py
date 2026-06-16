@@ -162,9 +162,12 @@ def _extract_json_payload(audit_md: str) -> dict:
 
 def _run_codex_detect(*, openai_token: str, key_mode: str) -> Path:
     env = os.environ.copy()
-    env['OPENAI_API_KEY'] = openai_token
-    # Codex CLI supports using CODEX_API_KEY; keep it aligned to avoid surprises.
-    env['CODEX_API_KEY'] = openai_token
+    # In subscription mode the worker authenticates via auth.json; don't set an
+    # OPENAI_API_KEY env var that would override or conflict with that auth.
+    if key_mode != 'subscription':
+        env['OPENAI_API_KEY'] = openai_token
+        # Codex CLI supports using CODEX_API_KEY; keep it aligned to avoid surprises.
+        env['CODEX_API_KEY'] = openai_token
     env['HOME'] = str(AGENT_DIR)
     env['AGENT_DIR'] = str(AGENT_DIR)
     env['SUBMISSION_DIR'] = str(SUBMISSION_DIR)

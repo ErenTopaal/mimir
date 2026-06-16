@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     INSTANCER_RESULTSVC_HOST: str = 'resultsvc'
     INSTANCER_RESULTSVC_PORT: int = 8083
 
+    # Optional: path to host's ~/.codex/auth.json for subscription auth mode.
+    # When set, this file is bind-mounted read-only into each worker container so
+    # codex exec authenticates via the Codex CLI subscription rather than an API key.
+    INSTANCER_CODEX_AUTH_PATH: str | None = None
+
     # Optional: only needed when the backend is configured for proxy-token mode.
     INSTANCER_OAI_PROXY_BASE_URL: str | None = Field(
         default=None,

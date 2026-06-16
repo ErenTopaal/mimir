@@ -64,6 +64,8 @@ combine-as-imports = false
 "api/routers/v1/permalink.py" = ["C901"]
 "ghbot/__main__.py" = ["S603", "S607", "S104", "ASYNC221", "PLW1510", "PLR2004"]
 "indexer/__main__.py" = ["S108", "PTH123", "BLE001", "S110", "PLR2004", "PGH003"]
+"tests/**" = ["S101", "PLR2004", "ANN", "Q000", "I001", "TC003", "E501", "ARG001", "RUF", "PLC0415", "PT001", "PT006", "PT007", "PT023", "S106"]
+"tests/conftest.py" = ["S101", "PLR2004", "ANN", "Q000", "I001", "TC003", "E501", "ARG001", "RUF", "PLC0415", "PT001"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 ## Legacy paths intentionally removed from OSS release.

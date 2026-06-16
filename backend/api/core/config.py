@@ -45,7 +45,8 @@ class Settings(BaseSettings):
     # How to pass OpenAI credentials to the worker.
     # - direct: worker receives plaintext OPENAI_API_KEY (default for OSS)
     # - proxy: worker receives encrypted token; oai_proxy decrypts and forwards upstream
-    BACKEND_OAI_KEY_MODE: Literal['direct', 'proxy'] = 'direct'
+    # - subscription: worker uses ~/.codex/auth.json (Codex CLI subscription auth, no API key needed)
+    BACKEND_OAI_KEY_MODE: Literal['direct', 'proxy', 'subscription'] = 'direct'
 
     BACKEND_STATIC_OAI_KEY: Secret[str] | None = None
     # When true, use the proxy's static key (sends "STATIC" marker instead of encrypted key)

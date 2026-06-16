@@ -49,6 +49,12 @@ class DockerBackend(BackendABC):
         if settings.INSTANCER_OAI_PROXY_BASE_URL:
             env['OAI_PROXY_BASE_URL'] = settings.INSTANCER_OAI_PROXY_BASE_URL
 
+        # Mount host Codex auth.json into the worker for subscription auth mode.
+        # The worker home is /home/agent (set in the base Dockerfile via ENV HOME).
+        binds: list[str] = []
+        if settings.INSTANCER_CODEX_AUTH_PATH:
+            binds.append(f'{settings.INSTANCER_CODEX_AUTH_PATH}:/home/agent/.codex/auth.json:ro')
+
         container = await docker.containers.create(
             config={
                 'Hostname': 'hi',
@@ -74,6 +80,7 @@ class DockerBackend(BackendABC):
                     'Ulimits': [
                         {'Name': 'nofile', 'Soft': 131_072, 'Hard': 131_072},
                     ],
+                    'Binds': binds,
                 },
                 'NetworkingConfig': {
                     'EndpointsConfig': {

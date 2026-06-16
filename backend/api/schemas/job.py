@@ -45,8 +45,10 @@ class StartJobForm(BaseModel):
 
     @model_validator(mode='after')
     def require_openai_key(self) -> 'StartJobForm':
-        # Skip validation if using proxy's static key or backend's static key
+        # Skip validation if using proxy's static key, backend's static key, or subscription mode
         if settings.BACKEND_USE_PROXY_STATIC_KEY:
+            return self
+        if settings.BACKEND_OAI_KEY_MODE == 'subscription':
             return self
         if settings.BACKEND_STATIC_OAI_KEY is None and not self.openai_key:
             msg = 'openai_key is required'
