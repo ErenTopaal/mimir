@@ -1,3 +1,5 @@
+name: avaxbench
+
 services:
   postgres:
     image: postgres:18.0
@@ -44,7 +46,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       context: .
     command: ["python", "-m", "secretsvc"]
-    container_name: avax-secretsvc
+    container_name: avaxbench-secretsvc
     restart: unless-stopped
     env_file:
       - .env
@@ -58,7 +60,7 @@ services:
       - ./.data/secrets:/app/.data/secrets
     networks:
       - app
-      - shared_network
+      - avaxbench-shared
 
   resultsvc:
     image: avaxbench/backend:latest
@@ -78,7 +80,7 @@ services:
         condition: service_healthy
     networks:
       - db
-      - shared_network
+      - avaxbench-shared
 
   oai_proxy:
     profiles: ["proxy"]
@@ -87,7 +89,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       context: .
     command: ["python", "-m", "oai_proxy"]
-    container_name: avax-oai-proxy
+    container_name: avaxbench-oai-proxy
     restart: unless-stopped
     env_file:
       - .env
@@ -99,7 +101,7 @@ services:
     ports:
       - "127.0.0.1:8084:8084"
     networks:
-      shared_network:
+      avaxbench-shared:
         aliases:
           - oai.loc
       app:
@@ -156,7 +158,7 @@ services:
       RABBITMQ_DSN: amqp://${RABBITMQ_USER:-avaxbench}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
       INSTANCER_WORKERS_BACKEND: docker
       INSTANCER_WORKERS_BACKEND_ARGUMENTS: >
-        {"secretsvc_name":"secretsvc","shared_network":"shared_network"}
+        {"secretsvc_name":"secretsvc","shared_network":"avaxbench-shared"}
       INSTANCER_SECRETSVC_HOST: secretsvc
       INSTANCER_SECRETSVC_PORT: 8081
       INSTANCER_SECRETS_TOKEN_RO: ${SECRETS_TOKEN_RO:?set SECRETS_TOKEN_RO}
@@ -208,5 +210,5 @@ networks:
   db:
   mq:
   # shared network is exposed to the untrusted environment
-  shared_network:
-    name: shared_network
+  avaxbench-shared:
+    name: avaxbench-shared

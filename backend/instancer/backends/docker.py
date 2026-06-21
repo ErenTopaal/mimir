@@ -31,7 +31,7 @@ class DockerBackend(BackendABC):
     def __init__(self, args: dict[str, str]) -> None:
         super().__init__(args)
         self._secretsvc_name = args.get('secretsvc_name', 'secretsvc')
-        self._shared_network = args.get('shared_network', 'shared_network')
+        self._shared_network = args.get('shared_network', 'avaxbench-shared')
 
     async def start_worker(self, options: StartWorkerOptions) -> StartWorkerResult:
         docker = get_docker()
@@ -96,7 +96,7 @@ class DockerBackend(BackendABC):
                     }
                 },
             },
-            name=f'avax-worker-{options.job_id}',
+            name=f'avaxbench-worker-{options.job_id}',
         )
 
         try:
