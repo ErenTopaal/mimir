@@ -44,7 +44,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       context: .
     command: ["python", "-m", "secretsvc"]
-    container_name: secretsvc
+    container_name: avax-secretsvc
     restart: unless-stopped
     env_file:
       - .env
@@ -87,7 +87,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       context: .
     command: ["python", "-m", "oai_proxy"]
-    container_name: oai-proxy
+    container_name: avax-oai-proxy
     restart: unless-stopped
     env_file:
       - .env

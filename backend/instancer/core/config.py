@@ -78,13 +78,17 @@ class Settings(BaseSettings):
     INSTANCER_RESULTSVC_HOST: str = 'resultsvc'
     INSTANCER_RESULTSVC_PORT: int = 8083
 
-    # Optional: path to host's ~/.codex/auth.json for subscription auth mode.
-    # When set, this file is bind-mounted read-only into each worker container so
-    # codex exec authenticates via the Codex CLI subscription rather than an API key.
+    # Recommended: path to host's ~/.codex directory for subscription auth mode.
+    # Bind-mounts the whole directory read-write into each worker so Codex can
+    # read tokens and write back refreshed ones automatically — set once, forget it.
+    INSTANCER_CODEX_DIR: str | None = None
+
+    # Optional: path to host's ~/.codex/auth.json (file-only, read-only mount).
+    # Superseded by INSTANCER_CODEX_DIR; kept for backward compatibility.
     INSTANCER_CODEX_AUTH_PATH: str | None = None
 
-    # Optional: base64-encoded content of ~/.codex/auth.json for subscription auth mode.
-    # Alternative to INSTANCER_CODEX_AUTH_PATH when file mounting isn't available.
+    # Optional: base64-encoded content of ~/.codex/auth.json.
+    # Last-resort fallback when neither directory nor file mounting is available.
     # Accepts both BACKEND_CODEX_AUTH_JSON and INSTANCER_CODEX_AUTH_JSON as env var names.
     INSTANCER_CODEX_AUTH_JSON: str | None = Field(
         default=None,

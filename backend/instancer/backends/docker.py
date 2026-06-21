@@ -48,14 +48,20 @@ class DockerBackend(BackendABC):
         }
         if settings.INSTANCER_OAI_PROXY_BASE_URL:
             env['OAI_PROXY_BASE_URL'] = settings.INSTANCER_OAI_PROXY_BASE_URL
-        if settings.INSTANCER_CODEX_AUTH_JSON:
-            env['CODEX_AUTH_JSON'] = settings.INSTANCER_CODEX_AUTH_JSON
 
-        # Mount host Codex auth.json into the worker for subscription auth mode.
+        # Codex auth — priority: directory mount > file mount > base64 env var.
         # The worker home is /home/agent (set in the base Dockerfile via ENV HOME).
         binds: list[str] = []
-        if settings.INSTANCER_CODEX_AUTH_PATH:
+        if settings.INSTANCER_CODEX_DIR:
+            # Preferred: mount the whole ~/.codex directory read-write so Codex can
+            # refresh tokens and write them back without any manual intervention.
+            binds.append(f'{settings.INSTANCER_CODEX_DIR}:/home/agent/.codex:rw')
+        elif settings.INSTANCER_CODEX_AUTH_PATH:
+            # Legacy: file-only read-only mount.
             binds.append(f'{settings.INSTANCER_CODEX_AUTH_PATH}:/home/agent/.codex/auth.json:ro')
+        elif settings.INSTANCER_CODEX_AUTH_JSON:
+            # Fallback: decode base64 auth.json inside the worker at start-up.
+            env['CODEX_AUTH_JSON'] = settings.INSTANCER_CODEX_AUTH_JSON
 
         container = await docker.containers.create(
             config={
@@ -90,7 +96,7 @@ class DockerBackend(BackendABC):
                     }
                 },
             },
-            name=f'avaxbench-worker-{options.job_id}',
+            name=f'avax-worker-{options.job_id}',
         )
 
         try:
