@@ -38,9 +38,13 @@ LAUNCHER_PROMPT=$'You are an expert smart contract auditor.\nFirst read the AGEN
 
 AUTH_PATH="${AGENT_DIR}/.codex/auth.json"
 if [[ ! -f "${AUTH_PATH}" ]]; then
-  # No auth.json present — log in using the API key.
-  # (In subscription mode auth.json is bind-mounted; this branch is skipped.)
-  : "${OPENAI_API_KEY:?missing OPENAI_API_KEY (and no auth.json found)}"
+  # No pre-mounted auth — fall back to API-key login.
+  # OPENAI_API_KEY is required in this case (direct / proxy modes).
+  if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+    echo "No Codex auth found at ${AUTH_PATH} and OPENAI_API_KEY is unset. Provide an API key or mount Codex auth." >&2
+    exit 2
+  fi
+  # Avoid passing the token in argv; log output for debugging.
   printf '%s\n' "${OPENAI_API_KEY}" | codex login --with-api-key > "${LOGS_DIR}/codex_login.log" 2>&1 || true
 fi
 

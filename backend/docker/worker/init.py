@@ -3,7 +3,6 @@ try:
 except ImportError:
     from asyncio import run
 
-import base64
 import io
 import json
 import os
@@ -27,7 +26,6 @@ RESULTSVC_PORT = os.getenv('RESULTSVC_PORT', '8083')
 RESULTSVC_JOB_TOKEN = os.getenv('RESULTSVC_JOB_TOKEN', '')
 OAI_PROXY_BASE_URL = os.getenv('OAI_PROXY_BASE_URL', '').strip()
 OAI_PROXY_WIRE_API = os.getenv('OAI_PROXY_WIRE_API', 'responses').strip()
-CODEX_AUTH_JSON = os.getenv('CODEX_AUTH_JSON', '').strip()
 
 AGENT_DIR = Path(os.getenv('AGENT_DIR') or str(Path.home()))
 AUDIT_DIR = Path(os.getenv('AUDIT_DIR') or str(AGENT_DIR / 'audit'))
@@ -41,20 +39,6 @@ RUNNER_DIR = Path(os.getenv('AVAX_BENCH_RUNNER_DIR') or '/opt/avaxbench/worker_r
 DETECT_MD_PATH = RUNNER_DIR / 'detect.txt'
 MODEL_MAP_PATH = RUNNER_DIR / 'model_map.json'
 CODEX_RUNNER_SH = RUNNER_DIR / 'run_codex_detect.sh'
-
-
-def _write_codex_auth_json(*, home: Path) -> None:
-    """Decode CODEX_AUTH_JSON and write it to ~/.codex/auth.json for subscription mode."""
-    if not CODEX_AUTH_JSON:
-        return
-    try:
-        content = base64.b64decode(CODEX_AUTH_JSON)
-    except Exception as err:
-        msg = f'Failed to decode CODEX_AUTH_JSON: {err}'
-        raise RuntimeError(msg) from err
-    auth_dir = home / '.codex'
-    auth_dir.mkdir(parents=True, exist_ok=True)
-    (auth_dir / 'auth.json').write_bytes(content)
 
 
 def _write_codex_proxy_config(*, home: Path) -> None:
@@ -178,20 +162,17 @@ def _extract_json_payload(audit_md: str) -> dict:
 
 def _run_codex_detect(*, openai_token: str, key_mode: str) -> Path:
     env = os.environ.copy()
-    # In subscription mode the worker authenticates via auth.json; don't set an
-    # OPENAI_API_KEY env var that would override or conflict with that auth.
     if key_mode != 'subscription':
+        # Direct / proxy modes — pass the token as env var so the shell script
+        # can run `codex login --with-api-key` if no auth file is present yet.
         env['OPENAI_API_KEY'] = openai_token
-        # Codex CLI supports using CODEX_API_KEY; keep it aligned to avoid surprises.
         env['CODEX_API_KEY'] = openai_token
+    # Subscription mode: tokens are already on disk (mounted by the instancer);
+    # leave OPENAI_API_KEY unset so the shell script skips api-key login.
     env['HOME'] = str(AGENT_DIR)
     env['AGENT_DIR'] = str(AGENT_DIR)
     env['SUBMISSION_DIR'] = str(SUBMISSION_DIR)
     env['LOGS_DIR'] = str(LOGS_DIR)
-
-    # Subscription mode: write auth.json from env var if provided.
-    if key_mode == 'subscription':
-        _write_codex_auth_json(home=AGENT_DIR)
 
     # Proxy-token mode: write Codex config to route requests through oai_proxy.
     if key_mode in {'proxy', 'proxy_static'}:
@@ -254,16 +235,19 @@ def _unpack_bundle(bundle: bytes, work_dir: Path) -> tuple[Path, str, str]:
         raise RuntimeError(msg)
 
     openai_token = key_payload.get('openai_token') or key_payload.get('openai_key')
-    if not isinstance(openai_token, str) or not openai_token:
-        msg = 'Missing openai_token in bundle'
-        raise RuntimeError(msg)
-
     key_mode = key_payload.get('key_mode') or 'direct'
     if not isinstance(key_mode, str):
         key_mode = 'direct'
     key_mode = key_mode.strip().lower()
     if key_mode not in {'direct', 'proxy', 'proxy_static', 'subscription'}:
         key_mode = 'direct'
+
+    # subscription mode: no API key needed — Codex uses mounted OAuth tokens.
+    if key_mode == 'subscription':
+        openai_token = ''
+    elif not isinstance(openai_token, str) or not openai_token:
+        msg = 'Missing openai_token in bundle'
+        raise RuntimeError(msg)
 
     if not upload_zip_path.exists():
         msg = 'Missing upload.zip in bundle'

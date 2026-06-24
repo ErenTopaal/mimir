@@ -78,21 +78,13 @@ class Settings(BaseSettings):
     INSTANCER_RESULTSVC_HOST: str = 'resultsvc'
     INSTANCER_RESULTSVC_PORT: int = 8083
 
-    # Recommended: path to host's ~/.codex directory for subscription auth mode.
-    # Bind-mounts the whole directory read-write into each worker so Codex can
-    # read tokens and write back refreshed ones automatically — set once, forget it.
-    INSTANCER_CODEX_DIR: str | None = None
-
-    # Optional: path to host's ~/.codex/auth.json (file-only, read-only mount).
-    # Superseded by INSTANCER_CODEX_DIR; kept for backward compatibility.
-    INSTANCER_CODEX_AUTH_PATH: str | None = None
-
-    # Optional: base64-encoded content of ~/.codex/auth.json.
-    # Last-resort fallback when neither directory nor file mounting is available.
-    # Accepts both BACKEND_CODEX_AUTH_JSON and INSTANCER_CODEX_AUTH_JSON as env var names.
-    INSTANCER_CODEX_AUTH_JSON: str | None = Field(
+    # Subscription mode: path to the host directory containing Codex OAuth tokens.
+    # Typically ~/.codex on the machine where `codex login` was run.
+    # When set, this directory is bind-mounted into each worker container
+    # at /root/.codex so Codex authenticates via OAuth without an API key.
+    INSTANCER_CODEX_AUTH_DIR: str | None = Field(
         default=None,
-        validation_alias=AliasChoices('INSTANCER_CODEX_AUTH_JSON', 'BACKEND_CODEX_AUTH_JSON'),
+        validation_alias=AliasChoices('INSTANCER_CODEX_AUTH_DIR', 'CODEX_AUTH_DIR'),
     )
 
     # Optional: only needed when the backend is configured for proxy-token mode.
