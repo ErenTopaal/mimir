@@ -68,6 +68,7 @@ services:
       dockerfile: docker/backend/Dockerfile
       context: .
     command: ["python", "-m", "resultsvc"]
+    container_name: avaxbench-resultsvc
     restart: unless-stopped
     env_file:
       - .env
@@ -159,10 +160,10 @@ services:
       INSTANCER_WORKERS_BACKEND: docker
       INSTANCER_WORKERS_BACKEND_ARGUMENTS: >
         {"secretsvc_name":"secretsvc","shared_network":"avaxbench-shared"}
-      INSTANCER_SECRETSVC_HOST: secretsvc
+      INSTANCER_SECRETSVC_HOST: avaxbench-secretsvc
       INSTANCER_SECRETSVC_PORT: 8081
       INSTANCER_SECRETS_TOKEN_RO: ${SECRETS_TOKEN_RO:?set SECRETS_TOKEN_RO}
-      INSTANCER_RESULTSVC_HOST: resultsvc
+      INSTANCER_RESULTSVC_HOST: avaxbench-resultsvc
       INSTANCER_RESULTSVC_PORT: 8083
       # Optional: only required for proxy-token mode
       INSTANCER_OAI_PROXY_BASE_URL: ${OAI_PROXY_BASE_URL:-}
