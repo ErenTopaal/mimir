@@ -53,7 +53,7 @@ class DockerBackend(BackendABC):
         # This lets the worker authenticate via OAuth without an API key.
         binds: list[str] = []
         if settings.INSTANCER_CODEX_AUTH_DIR:
-            binds.append(f'{settings.INSTANCER_CODEX_AUTH_DIR}:/root/.codex')
+            binds.append(f'{settings.INSTANCER_CODEX_AUTH_DIR}:/home/agent/.codex')
 
         container = await docker.containers.create(
             config={
