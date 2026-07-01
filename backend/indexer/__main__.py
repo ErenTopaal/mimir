@@ -12,6 +12,7 @@ import io
 import json
 import os
 import zipfile
+from pathlib import Path
 
 import httpx
 from loguru import logger
@@ -26,7 +27,7 @@ STATE_FILE = os.getenv('INDEXER_STATE_FILE', '/tmp/indexer_state.json')
 
 def _load_state() -> dict:
     try:
-        return json.loads(open(STATE_FILE).read())
+        return json.loads(Path(STATE_FILE).read_text())
     except Exception:
         return {'last_block': 0}
 

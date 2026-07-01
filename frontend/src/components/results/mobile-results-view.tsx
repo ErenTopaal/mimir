@@ -241,7 +241,6 @@ export function MobileResultsView({
   }
 
   useLayoutEffect(() => {
-    void wordWrap
     if (!codeViewportRef.current) return
     requestAnimationFrame(() => {
       const viewport = codeViewportRef.current

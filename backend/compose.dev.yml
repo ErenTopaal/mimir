@@ -1,3 +1,5 @@
+name: avaxbench
+
 services:
   postgres:
     image: postgres:18.0
@@ -32,7 +34,7 @@ services:
       context: .
     image: avaxbench/backend:latest
     command: ["python", "-m", "secretsvc"]
-    container_name: secretsvc
+    container_name: avaxbench-secretsvc
     ports:
       - "127.0.0.1:8081:8081"
     environment:
@@ -44,7 +46,7 @@ services:
     volumes:
       - ./.data/secrets:/.data/secrets
     networks:
-      shared_network:
+      avaxbench-shared:
         aliases:
           - secretsvc
 
@@ -54,6 +56,7 @@ services:
       context: .
     image: avaxbench/backend:latest
     command: ["python", "-m", "resultsvc"]
+    container_name: avaxbench-resultsvc
     ports:
       - "127.0.0.1:8083:8083"
     environment:
@@ -63,7 +66,7 @@ services:
       - .env
     networks:
       db:
-      shared_network:
+      avaxbench-shared:
         aliases:
           - resultsvc
 
@@ -74,7 +77,7 @@ services:
       context: .
     image: avaxbench/backend:latest
     command: ["python", "-m", "oai_proxy"]
-    container_name: oai-proxy
+    container_name: avaxbench-oai-proxy
     ports:
       - "127.0.0.1:8084:8084"
     environment:
@@ -85,11 +88,12 @@ services:
     env_file:
       - .env
     networks:
-      shared_network:
+      avaxbench-shared:
         aliases:
           - oai.loc
 
 networks:
   db:
-  shared_network:
-    name: shared_network
+  avaxbench-shared:
+    name: avaxbench-shared
+

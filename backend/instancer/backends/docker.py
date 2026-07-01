@@ -57,7 +57,7 @@ class DockerBackend(BackendABC):
 
         container = await docker.containers.create(
             config={
-                'Hostname': 'hi',
+                'Hostname': f'avaxbench-{options.job_id[:8]}',
                 'Image': settings.INSTANCER_WORKER_IMAGE,
                 'Env': [f'{k}={v}' for k, v in env.items()],
                 'Labels': {

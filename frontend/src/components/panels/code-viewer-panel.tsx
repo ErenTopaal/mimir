@@ -95,7 +95,6 @@ export function CodeViewerPanel({
   }
 
   useLayoutEffect(() => {
-    void wordWrap
     if (!viewportRef.current) return
     requestAnimationFrame(() => {
       const viewport = viewportRef.current

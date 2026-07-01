@@ -114,6 +114,8 @@ async def handle_webhook(
             return {'status': 'audit trigger failed'}
         job_data = r.json()
         job_id = job_data.get('job_id')
+        if not job_id or not isinstance(job_id, str):
+            return {'status': 'audit trigger failed', 'reason': 'invalid job_id'}
 
     await _post_pr_comment(
         repo_full_name, pr_number,

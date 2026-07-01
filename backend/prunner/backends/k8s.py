@@ -53,7 +53,8 @@ class K8sBackend(BackendABC):
         batch_v1 = client.BatchV1Api()
 
         seen_jobs = {}
-        namespaces = await self._k8s(v1.list_namespace, label_selector=f'{Labels.MANAGED_BY}=avaxbench')
+        label_sel = f'{Labels.MANAGED_BY}={settings.PRUNNER_MANAGER_NAME}'
+        namespaces = await self._k8s(v1.list_namespace, label_selector=label_sel)
         for namespace in namespaces.items:
             created_at = namespace.metadata.creation_timestamp
             job_id = namespace.metadata.labels.get(Labels.JOB_ID)

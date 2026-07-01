@@ -49,7 +49,7 @@ function ShikiCode({
     return (
       <code
         data-markdown-inline
-        className="bg-muted px-1.5 py-0.25 rounded text-xs text-foreground font-mono border"
+        className="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground font-mono border"
       >
         {children}
       </code>

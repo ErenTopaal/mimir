@@ -27,13 +27,16 @@ interface DashboardData {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const chain = "avalanche"
 
   useEffect(() => {
     fetch(`${API_BASE}/v1/dashboard/${chain}`)
       .then((r) => r.json())
       .then(setData)
-      .catch(console.error)
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load dashboard data")
+      })
       .finally(() => setLoading(false))
   }, [chain])
 
@@ -47,6 +50,10 @@ export default function DashboardPage() {
         </p>
 
         {loading && <p className="text-muted-foreground">Loading...</p>}
+
+        {error && (
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+        )}
 
         {data && (
           <>
