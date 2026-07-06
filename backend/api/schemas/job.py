@@ -27,7 +27,6 @@ class StartJobForm(BaseModel):
         try:
             return cls(model=model, openai_key=openai_key, file=file)
         except ValidationError as exc:
-            # TODO(es3n1n): this is **very** bad
             errors = exc.errors()
             messages = []
             for err in errors:

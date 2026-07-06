@@ -16,7 +16,6 @@ class JobStatus(enum.Enum):
     failed = 'failed'
 
 
-# TODO(es3n1n): revamp
 class Job(Base):
     __tablename__ = 'jobs'
     __table_args__ = (Index('ix_jobs_status_created_at_id', 'status', 'created_at', 'id'),)

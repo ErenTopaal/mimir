@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     BACKEND_SECRETS_BACKEND: str = 'server'
     BACKEND_SECRETS_BACKEND_ARGUMENTS: dict[str, str] = Field(default_factory=dict)
 
-    FRONTEND_PUBLIC_URL: str = 'http://127.0.0.1:3000'
-    BACKEND_PUBLIC_URL: str = 'http://127.0.0.1:1337'
+    FRONTEND_PUBLIC_URL: str = 'http://127.0.0.1:34291'
+    BACKEND_PUBLIC_URL: str = 'http://127.0.0.1:27413'
     BACKEND_JWT_SECRET: Secret[str]
     BACKEND_JWT_TTL_SECONDS: int = 60 * 60 * 24 * 30  # 30d
 

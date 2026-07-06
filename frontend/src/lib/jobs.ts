@@ -134,6 +134,30 @@ export async function fetchJobHistory(
   return response.json()
 }
 
+export interface PermalinkResult {
+  status: "cached" | "scanning" | "source_not_available"
+  job_id: string | null
+  result: JobReport | null
+}
+
+export async function fetchPermalink(
+  chain: string,
+  address: string,
+  signal?: AbortSignal,
+): Promise<PermalinkResult> {
+  const response = await fetch(
+    `${API_BASE}/v1/permalink/${chain}/${address}`,
+    { signal, cache: "no-store", credentials: "include" },
+  )
+
+  if (!response.ok) {
+    const message = await readApiError(response)
+    throw new Error(message ?? `Permalink lookup failed (${response.status})`)
+  }
+
+  return response.json()
+}
+
 async function readApiError(response: Response): Promise<string | null> {
   try {
     const data = await response.clone().json()

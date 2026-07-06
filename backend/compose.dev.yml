@@ -39,12 +39,14 @@ services:
       - "127.0.0.1:8081:8081"
     environment:
       - "SECRETSVC_HOST=0.0.0.0"
+      - "SECRETSVC_PORT=8081"
+      - "SECRETSVC_SECRETS_DIR=/app/.data/secrets"
       - "SECRETSVC_SECRETS_TOKEN_RO=${SECRETS_TOKEN_RO:-dev-secret}"
       - "SECRETSVC_SECRETS_TOKEN_WO=${SECRETS_TOKEN_WO:-dev-secret-wo}"
     env_file:
       - .env
     volumes:
-      - ./.data/secrets:/.data/secrets
+      - ./.data/secrets:/app/.data/secrets
     networks:
       avaxbench-shared:
         aliases:

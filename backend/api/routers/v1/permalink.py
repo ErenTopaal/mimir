@@ -150,14 +150,21 @@ async def get_permalink(
     # Trigger new audit
     zip_bytes = _create_zip_from_sources(source_files)
 
-    # Use static key if configured, else require it
-    if not settings.BACKEND_STATIC_OAI_KEY and not settings.BACKEND_USE_PROXY_STATIC_KEY:
-        raise HTTPException(status_code=412, detail='Permalink auditing requires a preconfigured API key')
-
-    openai_token = 'STATIC' if settings.BACKEND_USE_PROXY_STATIC_KEY else (
-        settings.BACKEND_STATIC_OAI_KEY.get_secret_value() if settings.BACKEND_STATIC_OAI_KEY else ''
-    )
-    key_mode = 'proxy_static' if settings.BACKEND_USE_PROXY_STATIC_KEY else 'direct'
+    # Determine credentials for the worker
+    if settings.BACKEND_OAI_KEY_MODE == 'subscription':
+        openai_token = ''
+        key_mode = 'subscription'
+    elif settings.BACKEND_USE_PROXY_STATIC_KEY:
+        openai_token = 'STATIC'  # noqa: S105
+        key_mode = 'proxy_static'
+    elif settings.BACKEND_STATIC_OAI_KEY:
+        openai_token = settings.BACKEND_STATIC_OAI_KEY.get_secret_value()
+        key_mode = 'direct'
+    else:
+        raise HTTPException(
+            status_code=412,
+            detail='Permalink auditing requires a preconfigured API key or subscription mode',
+        )
 
     job_id = uuid.uuid4()
     secret_ref = os.urandom(32).hex()

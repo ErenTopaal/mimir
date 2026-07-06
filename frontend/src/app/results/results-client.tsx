@@ -37,7 +37,7 @@ import { useMounted } from "@/hooks/use-mounted"
 import { useVulnerabilityNavigation } from "@/hooks/use-vulnerability-navigation"
 import { readFilesFromInput } from "@/lib/file-loader"
 import { validateFileData } from "@/lib/file-validation"
-import { mapJobVulnerabilities, setJobPublic } from "@/lib/jobs"
+import { fetchPermalink, mapJobVulnerabilities, setJobPublic } from "@/lib/jobs"
 import { normalizeFilePath } from "@/lib/paths"
 import { addRecentJob } from "@/lib/recent-jobs"
 import { inferPackageName } from "@/lib/upload-utils"
@@ -174,6 +174,45 @@ export default function ResultsClient() {
     () => buildSeverityMap(fileTree, fileSeverityMap),
     [fileTree, fileSeverityMap],
   )
+
+  // Resolve permalink params (chain + address) into a job_id
+  const [permalinkError, setPermalinkError] = useState<string | null>(null)
+  const [isResolvingPermalink, setIsResolvingPermalink] = useState(false)
+  useEffect(() => {
+    if (urlState.job_id) return
+    const chain = searchParams.get("chain")
+    const address = searchParams.get("address")
+    if (!chain || !address) return
+
+    let cancelled = false
+    setIsResolvingPermalink(true)
+    setPermalinkError(null)
+
+    fetchPermalink(chain, address)
+      .then((result) => {
+        if (cancelled) return
+        if (result.status === "source_not_available") {
+          setPermalinkError(
+            "Verified source not available for this contract on Snowtrace.",
+          )
+        } else if (result.job_id) {
+          setUrlState({ job_id: result.job_id })
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setPermalinkError(
+          err instanceof Error ? err.message : "Permalink lookup failed",
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setIsResolvingPermalink(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [searchParams, urlState.job_id, setUrlState])
 
   useEffect(() => {
     if (urlState.job_id) return
@@ -379,7 +418,7 @@ export default function ResultsClient() {
   ])
 
   const shouldGateResults = isRunComplete && !files
-  const statusError = jobError || job?.error
+  const statusError = permalinkError || jobError || job?.error
 
   return (
     <main className="flex min-h-screen w-screen flex-col md:h-screen">
