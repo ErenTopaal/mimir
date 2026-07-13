@@ -7,11 +7,19 @@ interface UseJobOptions {
   pollIntervalMs?: number
 }
 
+function getAdaptiveInterval(status?: string | null): number {
+  if (status === "queued") return 8000
+  if (status === "running") return 4000
+  return 4000
+}
+
 export function useJob(jobId: string | null, options: UseJobOptions = {}) {
-  const pollIntervalMs = options.pollIntervalMs ?? 4000
   const [job, setJob] = useState<JobResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  const pollIntervalMs =
+    options.pollIntervalMs ?? getAdaptiveInterval(job?.status)
 
   const loadJob = useCallback(async () => {
     if (!jobId) return

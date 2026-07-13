@@ -143,7 +143,7 @@ function FolderNode({
         <CollapsibleTrigger
           className={cn(
             "flex w-full items-center gap-1 py-0.5 px-2 rounded-sm text-left min-w-0",
-            "hover:bg-muted/50",
+            "hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none",
             isFocused && "bg-muted/50 inset-ring-1 inset-ring-border",
           )}
         >
@@ -151,7 +151,7 @@ function FolderNode({
             icon={ArrowRight01Icon}
             strokeWidth={2}
             className={cn(
-              "size-3.5 text-muted-foreground transition-transform shrink-0",
+              "size-3.5 text-muted-foreground transition-transform duration-150 shrink-0",
               isOpen && "rotate-90",
             )}
           />
@@ -171,7 +171,7 @@ function FolderNode({
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent>
-        <div className="ml-2.5 border-l border-border/50 pl-1">{children}</div>
+        <div className="ml-2.5 border-l border-border/50 pl-1 animate-in fade-in-0 duration-200">{children}</div>
       </CollapsibleContent>
     </Collapsible>
   )
@@ -204,7 +204,7 @@ function FileNode({
       onClick={handleClick}
       className={cn(
         "flex w-full items-center gap-1 py-0.5 pl-6.5 pr-2 rounded-sm text-left min-w-0",
-        "hover:bg-muted/50",
+        "hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none",
         isFocused && "bg-muted/50 inset-ring-1 inset-ring-border",
       )}
     >

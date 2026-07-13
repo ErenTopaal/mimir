@@ -19,7 +19,7 @@
   }
 
   p {
-    @apply text-pretty font-serif;
+    @apply text-pretty;
   }
 
   strong {
@@ -29,7 +29,7 @@
 
 @layer components {
   .prose {
-    @apply text-foreground font-serif text-base leading-5.5 *:first:mt-0! [&>:first-child_*]:mt-0! *:last:mb-0! [&>:last-child_*]:mb-0!;
+    @apply text-foreground text-sm leading-5 *:first:mt-0! [&>:first-child_*]:mt-0! *:last:mb-0! [&>:last-child_*]:mb-0!;
 
     :where(p):not(:where(.not-prose, .not-prose *)) {
       @apply text-foreground/80 my-5;
@@ -44,19 +44,19 @@
     }
 
     :where(h1):not(:where(.not-prose, .not-prose *)) {
-      @apply mt-8 mb-6 text-4xl;
+      @apply mt-8 mb-6 text-3xl;
     }
 
     :where(h2):not(:where(.not-prose, .not-prose *)) {
-      @apply mt-8 mb-4 text-2xl;
-    }
-
-    :where(h3):not(:where(.not-prose, .not-prose *)) {
       @apply mt-8 mb-4 text-xl;
     }
 
+    :where(h3):not(:where(.not-prose, .not-prose *)) {
+      @apply mt-8 mb-4 text-lg;
+    }
+
     :where(h4):not(:where(.not-prose, .not-prose *)) {
-      @apply mt-7 mb-3 text-lg;
+      @apply mt-7 mb-3 text-base;
     }
 
     :where(h5, h6):not(:where(.not-prose, .not-prose *)) {

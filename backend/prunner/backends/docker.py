@@ -16,9 +16,9 @@ STOPPED_STATES = {'exited', 'dead', 'created'}
 
 
 class Labels(StrEnum):
-    MANAGED_BY = 'io.osec.managed_by'
-    JOB_ID = 'io.osec.job_id'
-    STARTED_AT = 'io.osec.started_at'
+    MANAGED_BY = 'io.avaxbench.managed_by'
+    JOB_ID = 'io.avaxbench.job_id'
+    STARTED_AT = 'io.avaxbench.started_at'
 
 
 # NOTE: workaround for not having an async context during import-time

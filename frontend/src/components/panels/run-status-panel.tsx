@@ -29,14 +29,19 @@ export function RunStatusPanel({
 
   const statusLabel = job?.status ?? "queued"
   const isActive = isJobActive(job?.status)
+  const isRunning = job?.status === "running"
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <div className="w-full max-w-md space-y-3">
           <div className="space-y-1">
-            <h3 className="text-base text-foreground">Running analysis</h3>
-            <p className="text-base text-muted-foreground">
+            <h3 className="text-sm text-foreground">
+              {isRunning
+                ? `Running for ${elapsedLabel}`
+                : "Running analysis"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
               We are analyzing the uploaded repository. Results will appear as
               soon as the run completes.
             </p>

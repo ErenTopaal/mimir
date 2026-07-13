@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import io
 import os
+import posixpath
 import re
 import tarfile
 import uuid
 import zipfile
+from contextlib import suppress
 from typing import Annotated, Literal
 
 import httpx
@@ -17,10 +19,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.config import settings
+from api.core.const import ALLOWED_MODELS
 from api.core.deps import get_db
 from api.core.rabbitmq import RabbitMQPublisher, get_rabbitmq_publisher
 from api.models.job import Job, JobStatus
 from api.secrets.impl import secret_storage
+
+
+DEFAULT_MODEL = 'gpt-5.2-codex'
 
 
 router = APIRouter(prefix='/permalink', tags=['permalink'])
@@ -102,11 +108,20 @@ async def _fetch_source_from_snowtrace(chain: str, address: str, api_key: str | 
     return files or None
 
 
+def _sanitize_filename(name: str) -> str:
+    """Strip path traversal from external filenames."""
+    # Normalize and remove leading slashes, backslashes, and .. segments
+    normalized = posixpath.normpath(name).replace('\\', '/')
+    parts = [p for p in normalized.split('/') if p and p != '..']
+    return '/'.join(parts) or 'contract.sol'
+
+
 def _create_zip_from_sources(files: dict[str, str]) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for fname, content in files.items():
-            zf.writestr(fname, content)
+            safe_name = _sanitize_filename(fname)
+            zf.writestr(safe_name, content)
     return buf.getvalue()
 
 
@@ -116,34 +131,39 @@ async def get_permalink(
     address: str,
     session: DbSessionDep,
     publisher: PublisherDep,
+    model: str | None = None,
 ) -> PermalinkResult:
     if chain not in CHAIN_CONFIGS:
         raise HTTPException(status_code=400, detail=f'Unsupported chain: {chain}')
     if not AVALANCHE_ADDRESS_RE.match(address):
         raise HTTPException(status_code=400, detail='Invalid Avalanche address')
+    selected_model = model or DEFAULT_MODEL
+    if selected_model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f'Invalid model: {selected_model}')
 
-    # Check for cached result
+    # Check for cached result for this model
     tag = f'permalink:{chain}:{address.lower()}'
     existing = await session.scalar(
         select(Job)
-        .where(Job.file_name == tag, Job.status == JobStatus.succeeded)
+        .where(Job.file_name == tag, Job.model == selected_model, Job.status == JobStatus.succeeded)
         .order_by(Job.created_at.desc())
         .limit(1)
     )
     if existing:
         return PermalinkResult(status='cached', job_id=str(existing.id), result=existing.result)
 
-    # Check for in-progress scan
+    # Check for in-progress scan for this model
     in_progress = await session.scalar(
         select(Job)
-        .where(Job.file_name == tag, Job.status.in_([JobStatus.queued, JobStatus.running]))
+        .where(Job.file_name == tag, Job.model == selected_model, Job.status.in_([JobStatus.queued, JobStatus.running]))
         .limit(1)
     )
     if in_progress:
         return PermalinkResult(status='scanning', job_id=str(in_progress.id))
 
     # Fetch source from Snowtrace
-    source_files = await _fetch_source_from_snowtrace(chain, address, api_key=settings.SNOWTRACE_API_KEY)
+    api_key = settings.SNOWTRACE_API_KEY.get_secret_value() if settings.SNOWTRACE_API_KEY else None
+    source_files = await _fetch_source_from_snowtrace(chain, address, api_key=api_key)
     if not source_files:
         return PermalinkResult(status='source_not_available')
 
@@ -191,18 +211,25 @@ async def get_permalink(
         user_id='permalink',
         secret_ref=secret_ref,
         result_token=result_token,
-        model='codex-gpt-5.2',
-        file_name=tag,  # store the tag so we can find it later
+        model=selected_model,
+        file_name=tag,
         public=True,
     )
     session.add(job)
     await session.commit()
 
-    await publisher.publish_job_start(
-        job_id=str(job_id),
-        secret_ref=secret_ref,
-        model='codex-gpt-5.2',
-        result_token=result_token,
-    )
+    try:
+        await publisher.publish_job_start(
+            job_id=str(job_id),
+            secret_ref=secret_ref,
+            model=selected_model,
+            result_token=result_token,
+        )
+    except Exception as err:
+        with suppress(Exception):
+            await secret_storage.delete_secret(secret_ref)
+        await session.delete(job)
+        await session.commit()
+        raise HTTPException(status_code=502, detail='Failed to enqueue job') from err
 
     return PermalinkResult(status='scanning', job_id=str(job_id))

@@ -1,6 +1,9 @@
 "use client"
 
-import { Logout01Icon, WorkHistoryIcon } from "@hugeicons/core-free-icons"
+import {
+  Logout01Icon,
+  WorkHistoryIcon,
+} from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Image from "next/image"
 import Link from "next/link"
@@ -27,11 +30,13 @@ export function AuthStatus({ className }: AuthStatusProps) {
   if (!user) {
     return (
       <div className={cn("flex items-center gap-2 text-xs", className)}>
-        <span className="hidden font-serif text-base text-muted-foreground sm:inline">
+        <span className="hidden text-sm text-muted-foreground sm:inline">
           Authorization required
         </span>
         <Button asChild size="sm" variant="outline">
-          <a href={`${API_BASE}/v1/auth/`}>Authorize</a>
+          <a href={`${API_BASE}/v1/auth/`}>
+            Authorize
+          </a>
         </Button>
       </div>
     )
@@ -58,6 +63,7 @@ export function AuthStatus({ className }: AuthStatusProps) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
+          aria-label="Account menu"
           className={cn(
             "flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-foreground hover:bg-muted/40",
             className,

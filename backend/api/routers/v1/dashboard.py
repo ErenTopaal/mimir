@@ -1,6 +1,7 @@
 """Public ecosystem security dashboard API."""
 from __future__ import annotations
 
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
@@ -32,9 +33,16 @@ class TrendingContract(BaseModel):
     created_at: str
 
 
+class VulnPattern(BaseModel):
+    title: str
+    count: int
+    percentage: float
+
+
 class DashboardData(BaseModel):
     stats: DashboardStats
     trending: list[TrendingContract]
+    patterns: list[VulnPattern]
 
 
 @router.get('/{chain}', response_model=DashboardData)
@@ -80,6 +88,25 @@ async def get_dashboard(
 
     trending.sort(key=lambda x: (x.high_findings, x.created_at), reverse=True)
 
+    # Vulnerability pattern frequency analysis
+    patterns: list[VulnPattern] = []
+    if jobs:
+        title_counter: Counter[str] = Counter()
+        for job in jobs:
+            vulns = (job.result or {}).get('vulnerabilities', [])
+            for v in vulns:
+                raw = v.get('title', '')
+                if raw:
+                    title_counter[raw.strip().rstrip('.').lower()] += 1
+        patterns = [
+            VulnPattern(
+                title=title,
+                count=count,
+                percentage=(count / len(jobs)) * 100,
+            )
+            for title, count in title_counter.most_common(10)
+        ]
+
     return DashboardData(
         stats=DashboardStats(
             total_scanned=len(jobs),
@@ -88,4 +115,5 @@ async def get_dashboard(
             scanned_last_24h=int(recent_count),
         ),
         trending=trending[:20],
+        patterns=patterns,
     )

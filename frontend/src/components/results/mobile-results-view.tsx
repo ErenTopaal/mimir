@@ -98,7 +98,7 @@ function VulnerabilityCard({
           icon={ArrowDown01Icon}
           strokeWidth={2}
           className={cn(
-            "mt-0.5 size-4 shrink-0 text-muted-foreground",
+            "mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200",
             isExpanded && "rotate-180",
           )}
         />
@@ -124,7 +124,7 @@ function VulnerabilityCard({
       </button>
 
       {isExpanded && (
-        <div className="border-t border-border/30 bg-muted/25">
+        <div className="border-t border-border/30 bg-muted/25 transition-all duration-200">
           <div className="px-4 py-3">
             <Markdown className="text-base text-muted-foreground">
               {vulnerability.summary}

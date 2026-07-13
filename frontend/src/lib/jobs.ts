@@ -56,8 +56,12 @@ export async function fetchJob(
   jobId: string,
   signal?: AbortSignal,
 ): Promise<JobResponse> {
+  const timeoutSignal = AbortSignal.timeout(30_000)
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutSignal])
+    : timeoutSignal
   const response = await fetch(`${API_BASE}/v1/jobs/${jobId}`, {
-    signal,
+    signal: combinedSignal,
     cache: "no-store",
     credentials: "include",
   })
@@ -105,6 +109,7 @@ export async function startJob(
     method: "POST",
     body,
     credentials: "include",
+    signal: AbortSignal.timeout(30_000),
   })
 
   if (!response.ok) {
@@ -118,8 +123,12 @@ export async function startJob(
 export async function fetchJobHistory(
   signal?: AbortSignal,
 ): Promise<JobHistoryItem[]> {
+  const timeoutSignal = AbortSignal.timeout(30_000)
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutSignal])
+    : timeoutSignal
   const response = await fetch(`${API_BASE}/v1/jobs/history`, {
-    signal,
+    signal: combinedSignal,
     cache: "no-store",
     credentials: "include",
   })
@@ -143,12 +152,15 @@ export interface PermalinkResult {
 export async function fetchPermalink(
   chain: string,
   address: string,
+  model?: string,
   signal?: AbortSignal,
 ): Promise<PermalinkResult> {
-  const response = await fetch(
-    `${API_BASE}/v1/permalink/${chain}/${address}`,
-    { signal, cache: "no-store", credentials: "include" },
-  )
+  const params = model ? `?model=${encodeURIComponent(model)}` : ""
+  const response = await fetch(`${API_BASE}/v1/permalink/${chain}/${address}${params}`, {
+    signal,
+    cache: "no-store",
+    credentials: "include",
+  })
 
   if (!response.ok) {
     const message = await readApiError(response)
@@ -156,6 +168,38 @@ export async function fetchPermalink(
   }
 
   return response.json()
+}
+
+export async function auditGithubRepo(
+  url: string,
+  model?: string,
+  signal?: AbortSignal,
+): Promise<{ job_id: string; cached: boolean }> {
+  const timeoutSignal = AbortSignal.timeout(60_000)
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutSignal])
+    : timeoutSignal
+  const res = await fetch(`${API_BASE}/v1/github/audit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ url, model: model || undefined }),
+    signal: combinedSignal,
+  })
+  if (!res.ok) {
+    const msg = await readApiError(res)
+    throw new Error(msg ?? `Failed to audit GitHub repo (${res.status})`)
+  }
+  return res.json()
+}
+
+const FRIENDLY_STATUS_MESSAGES: Record<number, string> = {
+  400: "Invalid request",
+  401: "Please sign in to continue",
+  404: "Not found",
+  413: "File too large",
+  429: "Too many requests, please wait",
+  500: "Server error, please try again",
 }
 
 async function readApiError(response: Response): Promise<string | null> {
@@ -173,10 +217,12 @@ async function readApiError(response: Response): Promise<string | null> {
 
   try {
     const text = await response.text()
-    return text.trim() ? text : null
+    if (text.trim()) return text
   } catch {
-    return null
+    // ignore
   }
+
+  return FRIENDLY_STATUS_MESSAGES[response.status] ?? null
 }
 
 export function mapJobVulnerabilities(

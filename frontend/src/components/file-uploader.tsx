@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { toast } from "sonner"
 import {
   buildFileTree,
   FileTree,
@@ -122,8 +123,10 @@ export function FileUploader({
   onClear,
 }: FileUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const dragCounterRef = useRef(0)
   const [isDragging, setIsDragging] = useState(false)
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const hasFiles = !!files && files.length > 0
   const fileCountLabel =
@@ -155,6 +158,16 @@ export function FileUploader({
   const handleFiles = useCallback(
     (files: File[] | null) => {
       if (!files || files.length === 0) return
+      const solFiles = files.filter(
+        (f) =>
+          f.name.endsWith(".sol") ||
+          (f.webkitRelativePath && f.webkitRelativePath.endsWith(".sol")),
+      )
+      if (solFiles.length === 0) {
+        setErrorMessage("No Solidity files found")
+        return
+      }
+      setErrorMessage(null)
       onFilesSelected([...files])
       if (inputRef.current) {
         inputRef.current.value = ""
@@ -167,6 +180,7 @@ export function FileUploader({
     async (event: DragEvent<HTMLElement>) => {
       event.preventDefault()
       if (disabled) return
+      dragCounterRef.current = 0
       setIsDragging(false)
 
       try {
@@ -174,6 +188,7 @@ export function FileUploader({
         handleFiles(files)
       } catch (error) {
         console.error("Failed to process dropped items:", error)
+        toast.error("Failed to process dropped files. Please try again.")
       }
     },
     [disabled, handleFiles],
@@ -182,7 +197,15 @@ export function FileUploader({
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLElement>) => {
       event.preventDefault()
+    },
+    [],
+  )
+
+  const handleDragEnter = useCallback(
+    (event: DragEvent<HTMLElement>) => {
+      event.preventDefault()
       if (disabled) return
+      dragCounterRef.current++
       setIsDragging(true)
     },
     [disabled],
@@ -190,7 +213,10 @@ export function FileUploader({
 
   const handleDragLeave = useCallback((event: DragEvent<HTMLElement>) => {
     event.preventDefault()
-    setIsDragging(false)
+    dragCounterRef.current--
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false)
+    }
   }, [])
 
   const handleToggleExpand = useCallback((path: string) => {
@@ -241,9 +267,10 @@ export function FileUploader({
           aria-label="Uploaded files"
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           className={cn(
-            "flex h-64 flex-col rounded-2xl border border-border bg-muted/20 transition-colors",
+            "flex h-64 flex-col rounded-xl border border-border bg-muted/20 transition-colors",
             isDragging && "border-primary",
             disabled && "opacity-60",
           )}
@@ -251,7 +278,7 @@ export function FileUploader({
           <div className="flex items-center justify-between gap-3 bg-muted/20 px-4 py-1 text-xs text-muted-foreground">
             <div className="flex min-w-0 items-center gap-2">
               <span className="truncate text-foreground">{selectedName}</span>
-              <span className="shrink-0 font-serif text-base">
+              <span className="shrink-0 text-xs">
                 {fileCountLabel}
               </span>
             </div>
@@ -303,7 +330,7 @@ export function FileUploader({
               )}
             </div>
           </div>
-          <div className="flex-1 min-h-0 bg-background border-t border-border/50 pl-1.5 pt-1 rounded-b-2xl">
+          <div className="flex-1 min-h-0 bg-background border-t border-border/50 pl-1.5 pt-1 rounded-b-xl">
             <ScrollArea className="h-full min-h-0 pr-2" fadeColor="transparent">
               <FileTree
                 nodes={fileTree}
@@ -324,11 +351,12 @@ export function FileUploader({
           onKeyDown={handleKeyDown}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           className={cn(
-            "flex h-64 w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-8 text-center transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30",
+            "flex h-64 w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted/20 px-6 py-8 text-center transition-all duration-200 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30",
             !disabled && "cursor-pointer",
-            isDragging && "border-primary bg-muted/40",
+            isDragging && "border-primary bg-muted/40 ring-2 ring-primary/20",
             disabled && "cursor-not-allowed opacity-60",
           )}
         >
@@ -346,6 +374,12 @@ export function FileUploader({
             </span>
           </div>
         </button>
+      )}
+
+      {errorMessage && (
+        <p className="mt-2 text-center text-xs text-destructive">
+          {errorMessage}
+        </p>
       )}
 
       <input

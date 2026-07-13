@@ -18,7 +18,7 @@ export function FolderSeverityIndicator({ counts }: SeverityIndicatorProps) {
         return (
           <span
             key={severity}
-            className={cn("size-2 rounded-full opacity-50", bgForeground)}
+            className={cn("size-2 rounded-full", bgForeground)}
           />
         )
       })}

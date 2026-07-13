@@ -17,10 +17,10 @@ def get_docker() -> Docker:
 
 
 class Labels(StrEnum):
-    MANAGED_BY = 'io.osec.managed_by'
-    JOB_ID = 'io.osec.job_id'
-    STARTED_AT = 'io.osec.started_at'
-    KIND = 'io.osec.kind'
+    MANAGED_BY = 'io.avaxbench.managed_by'
+    JOB_ID = 'io.avaxbench.job_id'
+    STARTED_AT = 'io.avaxbench.started_at'
+    KIND = 'io.avaxbench.kind'
 
 
 def ts() -> int:

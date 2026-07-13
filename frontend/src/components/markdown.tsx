@@ -49,7 +49,7 @@ function ShikiCode({
     return (
       <code
         data-markdown-inline
-        className="bg-muted px-1.5 py-0.5 rounded text-xs text-foreground font-mono border"
+        className="bg-muted px-1.5 py-0.25 rounded text-xs text-foreground font-mono border"
       >
         {children}
       </code>
@@ -100,7 +100,7 @@ interface MarkdownProps {
 
 export function Markdown({ children, className }: MarkdownProps) {
   return (
-    <div className={cn("prose text-base tracking-tight", className)}>
+    <div className={cn("prose text-sm tracking-tight", className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}
       </ReactMarkdown>
@@ -140,7 +140,7 @@ interface InlineMarkdownProps {
 export function InlineMarkdown({ children, className }: InlineMarkdownProps) {
   return (
     <span
-      className={cn("inline text-base font-serif leading-tight", className)}
+      className={cn("inline text-sm leading-tight", className)}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={inlineComponents}>
         {children}

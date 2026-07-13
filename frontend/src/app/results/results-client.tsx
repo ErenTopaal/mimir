@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation"
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePanelRef } from "react-resizable-panels"
+import { toast } from "sonner"
 import { AppFooter } from "@/components/app-footer"
 import { getAllFilePaths } from "@/components/file-tree"
 import {
@@ -360,6 +361,7 @@ export default function ResultsClient() {
     try {
       const updated = await setJobPublic(jobId, !job.public)
       setJob(updated)
+      toast(updated.public ? "Job is now public" : "Job is now private")
     } catch (error) {
       setShareError(
         error instanceof Error ? error.message : "Failed to update sharing",

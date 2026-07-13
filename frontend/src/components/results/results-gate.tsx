@@ -18,8 +18,8 @@ export function ResultsGate({
     <section className="flex flex-1 items-center justify-center px-6 py-10">
       <div className="w-full max-w-xl space-y-6">
         <div className="space-y-1">
-          <h1 className="text-base text-foreground">Validation required</h1>
-          <p className="text-base text-muted-foreground">
+          <h1 className="text-sm text-foreground">Validation required</h1>
+          <p className="text-sm text-muted-foreground">
             Upload the exact contract folder used for this run.
           </p>
         </div>

@@ -1,12 +1,14 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AppFooter } from "@/components/app-footer"
 import { AppHeader } from "@/components/app-header"
 import { FileUploader } from "@/components/file-uploader"
+import { RecentRuns } from "@/components/recent-runs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -19,34 +21,50 @@ import { useAuth } from "@/hooks/use-auth"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useSessionStorage } from "@/hooks/use-session-storage"
 import { API_BASE } from "@/lib/api"
-import { startJob } from "@/lib/jobs"
+import { detectInputType } from "@/lib/input-detection"
+import { auditGithubRepo, fetchPermalink, startJob } from "@/lib/jobs"
 import { addRecentJob, type RecentJob } from "@/lib/recent-jobs"
 import { inferPackageName } from "@/lib/upload-utils"
 import { createZipFromFiles } from "@/lib/zip"
 import { useUploadStore } from "@/store/upload-store"
 
-const AVALANCHE_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
-
 export default function Page() {
   const router = useRouter()
   const { files, packageName, setUpload, clearUpload } = useUploadStore()
-  const [openaiKey, setOpenaiKey] = useSessionStorage("avaxbench.openaiKey", "")
-  const [model, setModel] = useState("codex-gpt-5.2")
+  const [openaiKey, setOpenaiKey] = useState("")
+  const [storedModel, setStoredModel] = useLocalStorage("avaxbench.model", "")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [oneBoxValue, setOneBoxValue] = useSessionStorage(
+    "avaxbench.oneBox",
+    "",
+  )
+  const oneBoxType = detectInputType(oneBoxValue)
+  const [isOneBoxSubmitting, setIsOneBoxSubmitting] = useState(false)
+  const [oneBoxError, setOneBoxError] = useState<string | null>(null)
   const [recentJobs, setRecentJobs] = useLocalStorage<RecentJob[]>(
     "avaxbench.recentJobs.v1",
     [],
   )
-  const [universalInput, setUniversalInput] = useState("")
-  const [universalNotice, setUniversalNotice] = useState<string | null>(null)
-  const fileUploaderRef = useRef<HTMLDivElement>(null)
   const {
     isAuthorized,
     isLoading: isAuthLoading,
     isConfigLoading,
     keyPredefined,
+    models,
   } = useAuth()
+
+  // Sync model with backend-provided list
+  const model =
+    storedModel && models.includes(storedModel)
+      ? storedModel
+      : models[0] ?? ""
+
+  useEffect(() => {
+    if (models.length > 0 && (!storedModel || !models.includes(storedModel))) {
+      setStoredModel(models[0])
+    }
+  }, [models, storedModel, setStoredModel])
 
   const fileCount = files?.length ?? 0
   const selectedLabel = useMemo(() => {
@@ -72,26 +90,6 @@ export default function Page() {
     [setOpenaiKey],
   )
 
-  const handleUniversalInput = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== "Enter") return
-      const value = universalInput.trim()
-      if (!value) return
-      setUniversalNotice(null)
-      if (AVALANCHE_ADDRESS_RE.test(value)) {
-        router.push(`/results?chain=avalanche&address=${value}`)
-        return
-      }
-      if (value.includes("github.com")) {
-        setUniversalNotice("GitHub URL auditing coming soon.")
-        return
-      }
-      // Focus file uploader for any other input
-      fileUploaderRef.current?.querySelector("input")?.focus()
-    },
-    [universalInput, router],
-  )
-
   const handleSubmit = async () => {
     if (!files || fileCount === 0) return
     if (!isAuthorized) {
@@ -107,7 +105,6 @@ export default function Page() {
       const name = selectedLabel ?? "files"
       const zipFile = await createZipFromFiles(files, name)
       const response = await startJob(zipFile, model, trimmedKey)
-      // Persist locally so users can navigate back without server-side auth/history.
       const next = addRecentJob({
         job_id: response.job_id,
         label: name,
@@ -124,164 +121,210 @@ export default function Page() {
 
   return (
     <main className="flex min-h-screen w-screen flex-col">
-      <AppHeader showLogo={false} showBorder={false} />
-      <section className="flex flex-1 items-center justify-center px-6 py-12">
-        <div className="w-full max-w-4xl">
-          <div className="mx-auto grid max-w-sm gap-10 lg:max-w-none lg:grid-cols-5">
-            <div className="space-y-6 lg:col-span-3">
-              <div>
-                <h1 className="text-5xl leading-[1.1] font-serif text-foreground mb-1.5">
-                  AvaxBench
-                </h1>
-                <h2 className="text-2xl leading-[1.1] font-serif text-foreground mb-3">
-                  Evaluating AI performance on Avalanche smart contract findings
-                </h2>
-                <div className="space-y-2 text-base text-foreground/80">
-                  <p className="leading-tight">
-                    AvaxBench is a benchmark that evaluates whether AI agents
-                    can detect, patch, and exploit high-severity vulnerabilities
-                    in Avalanche smart contracts.
-                  </p>
-                  <p className="leading-tight">
-                    This interface focuses on detection and only reports
-                    high-severity findings. Upload a contract folder, provide an
-                    API key, and start a run.
-                  </p>
-                </div>
-              </div>
+      <AppHeader showLogo showBorder={false} />
+      <section className="flex flex-1 flex-col items-center justify-center px-6 py-16">
+        <div className="w-full max-w-lg space-y-8">
+          {/* Hero */}
+          <div className="animate-fade-in-up space-y-2 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              AvaxBench
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              AI-powered security analysis for Avalanche smart contracts.
+            </p>
+          </div>
+
+          {/* Form */}
+          <div
+            className="animate-fade-in-up space-y-4"
+            style={{ animationDelay: "80ms" }}
+          >
+            {/* One-box input */}
+            <div className="grid gap-1.5">
+              <Input
+                id="one-box"
+                type="text"
+                placeholder="Paste 0x address, GitHub URL, or drop files below"
+                value={oneBoxValue}
+                onChange={(e) => {
+                  setOneBoxValue(e.target.value)
+                  setOneBoxError(null)
+                }}
+                disabled={isSubmitting || isOneBoxSubmitting}
+              />
+              {oneBoxType === "address" && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={isOneBoxSubmitting}
+                  onClick={async () => {
+                    const address = oneBoxValue.trim()
+                    setIsOneBoxSubmitting(true)
+                    setOneBoxError(null)
+                    try {
+                      const res = await fetchPermalink("avalanche", address, model)
+                      if (res.job_id) {
+                        router.push(`/results?job_id=${res.job_id}`)
+                      } else if (res.status === "source_not_available") {
+                        setOneBoxError(
+                          "Source code not available for this address",
+                        )
+                      }
+                    } catch (err) {
+                      setOneBoxError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to trigger on-chain audit",
+                      )
+                    } finally {
+                      setIsOneBoxSubmitting(false)
+                    }
+                  }}
+                >
+                  {isOneBoxSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Spinner size="sm" />
+                      Checking source…
+                    </span>
+                  ) : (
+                    <>Audit on-chain &rarr;</>
+                  )}
+                </Button>
+              )}
+              {oneBoxType === "github" && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={isOneBoxSubmitting}
+                  onClick={async () => {
+                    const trimmed = oneBoxValue.trim().replace(/\/$/, "")
+                    setIsOneBoxSubmitting(true)
+                    setOneBoxError(null)
+                    try {
+                      const res = await auditGithubRepo(trimmed, model)
+                      router.push(`/results?job_id=${res.job_id}`)
+                    } catch (err) {
+                      setOneBoxError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to trigger GitHub audit",
+                      )
+                    } finally {
+                      setIsOneBoxSubmitting(false)
+                    }
+                  }}
+                >
+                  {isOneBoxSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Spinner size="sm" />
+                      Fetching repo…
+                    </span>
+                  ) : (
+                    <>Audit from GitHub &rarr;</>
+                  )}
+                </Button>
+              )}
+              {oneBoxError && (
+                <p className="text-xs text-destructive">{oneBoxError}</p>
+              )}
             </div>
 
-            <div className="space-y-6 lg:col-span-2">
-              <div className="grid gap-1">
-                <Label htmlFor="universal-input" className="text-xs text-foreground">
-                  Address or GitHub URL
-                </Label>
-                <Input
-                  id="universal-input"
-                  type="text"
-                  placeholder="0x… address or github.com/…"
-                  value={universalInput}
-                  onChange={(e) => {
-                    setUniversalInput(e.target.value)
-                    setUniversalNotice(null)
-                  }}
-                  onKeyDown={handleUniversalInput}
-                />
-                {universalNotice && (
-                  <p className="text-xs text-muted-foreground">{universalNotice}</p>
-                )}
-              </div>
+            {/* File uploader */}
+            <FileUploader
+              onFilesSelected={handleFilesSelected}
+              files={files}
+              selectedLabel={selectedLabel}
+              fileCount={fileCount}
+              disabled={isSubmitting}
+              onClear={clearUpload}
+            />
 
-              <div ref={fileUploaderRef}>
-                <FileUploader
-                  onFilesSelected={handleFilesSelected}
-                  files={files}
-                  selectedLabel={selectedLabel}
-                  fileCount={fileCount}
-                  disabled={isSubmitting}
-                  onClear={clearUpload}
-                />
-              </div>
-
-              <div className="grid gap-3 text-xs text-muted-foreground">
-                {!isConfigLoading && !keyPredefined && (
-                  <div className="grid gap-1">
-                    <Label
-                      htmlFor="openai-key"
-                      className="text-xs text-foreground"
-                    >
-                      OpenAI API Key
-                    </Label>
-                    <Input
-                      id="openai-key"
-                      type="password"
-                      placeholder="sk-&hellip;"
-                      value={openaiKey}
-                      onChange={handleKeyChange}
-                    />
-                  </div>
-                )}
+            {/* Model + key row */}
+            <div className="grid gap-3 text-xs text-muted-foreground">
+              {!isConfigLoading && !keyPredefined && (
                 <div className="grid gap-1">
                   <Label
-                    htmlFor="model-select"
+                    htmlFor="openai-key"
                     className="text-xs text-foreground"
                   >
-                    Model
+                    OpenAI API Key
                   </Label>
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger id="model-select" className="w-full">
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="codex-gpt-5.2">
-                        codex-gpt-5.2
-                      </SelectItem>
-                      <SelectItem value="codex-gpt-5.1-codex-max">
-                        codex-gpt-5.1-codex-max
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="openai-key"
+                    type="password"
+                    placeholder="sk-&hellip;"
+                    value={openaiKey}
+                    onChange={handleKeyChange}
+                  />
                 </div>
-                {!isAuthLoading && !isAuthorized && (
-                  <span className="text-base font-serif text-muted-foreground">
-                    <a
-                      href={`${API_BASE}/v1/auth/`}
-                      className="text-foreground underline underline-offset-2 hover:text-primary"
-                    >
-                      Authorize
-                    </a>{" "}
-                    to start analysis.
-                  </span>
-                )}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                  className="w-full uppercase"
+              )}
+              <div className="grid gap-1">
+                <Label
+                  htmlFor="model-select"
+                  className="text-xs text-foreground"
                 >
-                  {isSubmitting ? "Uploading…" : "Start analysis"}
-                </Button>
-                {submitError && (
-                  <div className="text-xs text-destructive">{submitError}</div>
-                )}
-
-                {recentJobs.length > 0 && (
-                  <div className="pt-1">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        Recent runs
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setRecentJobs([])}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      {recentJobs.slice(0, 6).map((job) => (
-                        <button
-                          key={job.job_id}
-                          type="button"
-                          onClick={() =>
-                            router.push(`/results?job_id=${job.job_id}`)
-                          }
-                          className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted/40"
-                          title={job.job_id}
-                        >
-                          <span className="min-w-0 flex-1 truncate text-foreground">
-                            {job.label}
-                          </span>
-                          <span className="shrink-0 font-mono text-muted-foreground">
-                            {job.job_id.slice(0, 8)}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  Model
+                </Label>
+                <Select value={model} onValueChange={setStoredModel}>
+                  <SelectTrigger id="model-select" className="w-full">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Auth notice */}
+              {!isAuthLoading && !isAuthorized && (
+                <span className="text-sm text-muted-foreground">
+                  <a
+                    href={`${API_BASE}/v1/auth/`}
+                    className="text-foreground underline underline-offset-2 hover:text-primary"
+                  >
+                    Authorize
+                  </a>{" "}
+                  to start analysis.
+                </span>
+              )}
+
+              {/* Submit */}
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="h-11 w-full text-sm font-medium uppercase tracking-wider"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Spinner size="md" />
+                    Uploading…
+                  </span>
+                ) : (
+                  "Start analysis"
+                )}
+              </Button>
+
+              {submitError && (
+                <div className="text-xs text-destructive">{submitError}</div>
+              )}
             </div>
+          </div>
+
+          {/* Recent runs */}
+          <div
+            className="animate-fade-in-up"
+            style={{ animationDelay: "160ms" }}
+          >
+            <RecentRuns
+              jobs={recentJobs}
+              onClear={() => setRecentJobs([])}
+            />
           </div>
         </div>
       </section>

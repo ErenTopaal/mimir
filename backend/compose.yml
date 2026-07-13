@@ -100,7 +100,7 @@ services:
       # Required only when running with profile "proxy"
       OAI_PROXY_AES_KEY: ${OAI_PROXY_AES_KEY:-}
     ports:
-      - "127.0.0.1:8084:8084"
+      - "127.0.0.1:50084:8084"
     networks:
       avaxbench-shared:
         aliases:
@@ -129,7 +129,7 @@ services:
         {"url":"http://secretsvc:8081","token":"${SECRETS_TOKEN_WO:?set SECRETS_TOKEN_WO}"}
       RABBITMQ_DSN: amqp://${RABBITMQ_USER:-avaxbench}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
     ports:
-      - "127.0.0.1:${BACKEND_WEB_PORT:-27413}:1337"
+      - "127.0.0.1:${BACKEND_WEB_PORT:-50337}:1337"
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,6 +182,21 @@ services:
       - db
       - mq
       - app
+
+  frontend:
+    build:
+      dockerfile: ../frontend/Dockerfile
+      context: ../frontend
+      args:
+        NEXT_PUBLIC_API_BASE: http://127.0.0.1:${BACKEND_WEB_PORT:-50337}
+    image: avaxbench/frontend:latest
+    container_name: avaxbench-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-50300}:80"
+    depends_on:
+      backend:
+        condition: service_started
 
   prunner:
     profiles: ["cleanup"]

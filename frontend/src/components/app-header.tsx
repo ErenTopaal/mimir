@@ -30,14 +30,16 @@ export function AppHeader({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-1">{left}</div>
+      <div className="flex min-w-0 items-center gap-1">
+        {left}
+      </div>
       <div className="flex min-w-0 items-center justify-center overflow-hidden">
         {showLogo ? (
           <Link
             href="/"
-            className="hidden min-[350px]:block shrink-0 font-serif text-xl text-foreground"
+            className="hidden min-[350px]:block shrink-0 text-base font-semibold tracking-tight text-foreground"
           >
-            avaxbench
+            AvaxBench
           </Link>
         ) : (
           center

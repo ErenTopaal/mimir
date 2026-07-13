@@ -6,6 +6,7 @@ import { AppFooter } from "@/components/app-footer"
 import { AppHeader } from "@/components/app-header"
 import { JobStatusBadge } from "@/components/results/job-status-badge"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 import { fetchJobHistory, type JobHistoryItem } from "@/lib/jobs"
 import { formatDateTime } from "@/lib/time"
@@ -43,8 +44,8 @@ export default function HistoryPage() {
         <div className="w-full max-w-3xl space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <h1 className="text-base text-foreground">Job history</h1>
-              <p className="text-base text-muted-foreground">
+              <h1 className="text-2xl font-semibold">Job history</h1>
+              <p className="text-sm text-muted-foreground">
                 Review past analyses and jump back into results.
               </p>
             </div>
@@ -59,32 +60,46 @@ export default function HistoryPage() {
           </div>
 
           {!isAuthEnabled && (
-            <p className="text-base text-muted-foreground">
-              Job history is not available when authentication is disabled.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-sm text-muted-foreground">
+                Job history is not available when authentication is disabled.
+              </p>
+            </div>
           )}
 
           {isAuthEnabled && !isAuthorized && !isAuthLoading && (
-            <p className="text-base text-muted-foreground">
-              Please authorize to view your job history.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-sm text-muted-foreground">
+                Please authorize to view your job history.
+              </p>
+            </div>
           )}
 
           {isLoading && (
-            <p className="text-base text-muted-foreground">Loading...</p>
+            <div className="space-y-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-6 rounded-md px-3 py-2">
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-14" />
+                </div>
+              ))}
+            </div>
           )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!isLoading && !error && isAuthorized && history.length === 0 && (
-            <p className="text-base text-muted-foreground">
-              No jobs found. Start an analysis to see your history.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-sm text-muted-foreground">
+                No jobs found. Start an analysis to see your history.
+              </p>
+            </div>
           )}
 
           {!isLoading && !error && history.length > 0 && (
             <div className="text-sm -mx-3">
-              {/* Desktop: grid layout */}
               <div className="hidden grid-cols-[minmax(0,1fr)_160px_120px_110px] gap-x-6 gap-y-2 px-3 pb-2 text-xs text-muted-foreground md:grid">
                 <span>File</span>
                 <span>Created</span>
@@ -96,9 +111,9 @@ export default function HistoryPage() {
                   <Link
                     key={job.job_id}
                     href={`/results?job_id=${job.job_id}`}
-                    className="flex flex-col gap-1 rounded-md px-3 py-2 hover:bg-muted/40 hover:text-foreground md:grid md:grid-cols-[minmax(0,1fr)_160px_120px_110px] md:items-center md:gap-x-6 md:gap-y-2 md:py-1"
+                    className="flex flex-col gap-1 rounded-md px-3 py-2 transition-colors duration-100 hover:bg-muted/40 hover:text-foreground md:grid md:grid-cols-[minmax(0,1fr)_160px_120px_110px] md:items-center md:gap-x-6 md:gap-y-2 md:py-1"
                   >
-                    <span className="truncate font-medium md:font-normal">
+                    <span className="truncate font-medium md:font-normal" title={job.file_name}>
                       {job.file_name}
                     </span>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:contents">
@@ -108,7 +123,7 @@ export default function HistoryPage() {
                       <JobStatusBadge status={job.status} />
                       <span className="text-xs text-muted-foreground">
                         {job.public == null
-                          ? "\u2014"
+                          ? "Private"
                           : job.public
                             ? "Public"
                             : "Private"}

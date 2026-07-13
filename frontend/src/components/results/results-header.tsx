@@ -4,8 +4,10 @@ import {
   Copy01Icon,
   InformationCircleIcon,
   Share08Icon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
@@ -109,6 +111,7 @@ function SharingContent({
   shareError,
   onTogglePublic,
   onCopyLink,
+  hasCopied,
 }: {
   job: JobResponse
   sharePath: string
@@ -118,6 +121,7 @@ function SharingContent({
   shareError: string | null
   onTogglePublic: () => void
   onCopyLink: () => void
+  hasCopied: boolean
 }) {
   return (
     <div className="space-y-3 text-sm">
@@ -157,24 +161,35 @@ function SharingContent({
         <span className="text-xs self-center text-muted-foreground">Link</span>
         {isSharePublic ? (
           <div className="flex min-w-0 items-center gap-2 self-center">
-            <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+            <span className="flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
               {sharePath}
             </span>
             <button
               type="button"
               onClick={onCopyLink}
-              className="ml-auto rounded p-1 text-muted-foreground hover:bg-muted"
+              className="ml-auto flex shrink-0 items-center gap-1 rounded p-1 text-muted-foreground hover:bg-muted"
               title="Copy link"
             >
-              <HugeiconsIcon
-                icon={Copy01Icon}
-                strokeWidth={2}
-                className="size-3.5"
-              />
+              {hasCopied ? (
+                <>
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    strokeWidth={2}
+                    className="size-3.5 text-green-500"
+                  />
+                  <span className="text-xs text-green-500">Copied!</span>
+                </>
+              ) : (
+                <HugeiconsIcon
+                  icon={Copy01Icon}
+                  strokeWidth={2}
+                  className="size-3.5"
+                />
+              )}
             </button>
           </div>
         ) : (
-          <span className="text-sm font-serif text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             Make the job public to share this link.
           </span>
         )}
@@ -200,18 +215,31 @@ export function ResultsHeader({
   const statusError = error || job?.error || null
   const sharePath = jobId ? `${PATH_PREFIX}/results?job_id=${jobId}` : ""
   const isSharePublic = !isAuthEnabled || Boolean(job?.public)
+  const [hasCopied, setHasCopied] = useState(false)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleCopyLink = () => {
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+    }
+  }, [])
+
+  const handleCopyLink = useCallback(() => {
     if (!sharePath) return
     const shareUrl =
       typeof window === "undefined"
         ? sharePath
         : `${window.location.origin}${sharePath}`
     void navigator.clipboard.writeText(shareUrl).then(
-      () => toast("Link copied to clipboard!"),
+      () => {
+        toast("Link copied to clipboard!")
+        setHasCopied(true)
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+        copiedTimerRef.current = setTimeout(() => setHasCopied(false), 2000)
+      },
       () => toast("Failed to copy link."),
     )
-  }
+  }, [sharePath])
 
   const runNameButton = (
     <button
@@ -270,6 +298,7 @@ export function ResultsHeader({
                       shareError={shareError ?? null}
                       onTogglePublic={onTogglePublic}
                       onCopyLink={handleCopyLink}
+                      hasCopied={hasCopied}
                     />
                   </>
                 )}
@@ -321,6 +350,7 @@ export function ResultsHeader({
                     shareError={shareError ?? null}
                     onTogglePublic={onTogglePublic}
                     onCopyLink={handleCopyLink}
+                    hasCopied={hasCopied}
                   />
                 </PopoverContent>
               </Popover>

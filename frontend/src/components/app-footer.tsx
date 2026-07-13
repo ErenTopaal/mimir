@@ -17,9 +17,13 @@ export function AppFooter({ className, showBorder = true }: AppFooterProps) {
       )}
     >
       <div className="flex flex-wrap items-center justify-center gap-x-3">
-        <span className="font-serif text-sm">
-          &copy; {new Date().getFullYear()} All rights reserved.
+        <span className="text-xs">
+          &copy; {new Date().getFullYear()} AvaxBench
         </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-xs">Avalanche smart contract security</span>
       </div>
     </footer>
   )

@@ -38,7 +38,7 @@ def _require_token(*, w: bool) -> Callable[[TokenHeader], None]:
 async def _ensure_private_dir(path: Path) -> None:
     await aioos.makedirs(path, exist_ok=True)
     with suppress(OSError):
-        path.chmod(0o700)
+        path.chmod(0o700)  # noqa: ASYNC240
 
 
 def _secret_path(secret_ref: str) -> Path:

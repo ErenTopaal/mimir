@@ -1,5 +1,7 @@
 "use client"
 
+import { Folder01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Empty,
   EmptyContent,
@@ -24,11 +26,16 @@ export function FileTree({
     return (
       <Empty className="border-none px-2 py-8">
         <EmptyHeader>
+          <HugeiconsIcon
+            icon={Folder01Icon}
+            strokeWidth={1.5}
+            className="size-8 text-muted-foreground/60 mx-auto mb-2"
+          />
           <EmptyTitle>No files loaded</EmptyTitle>
         </EmptyHeader>
         <EmptyContent>
           <EmptyDescription>
-            Upload a folder to populate the explorer.
+            Upload files to see them here
           </EmptyDescription>
         </EmptyContent>
       </Empty>

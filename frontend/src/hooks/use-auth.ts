@@ -7,6 +7,7 @@ const DEFAULT_FRONTEND_CONFIG: FrontendConfig = {
   // OSS-friendly default: if the backend config can't be fetched, don't gate usage on auth.
   auth_enabled: false,
   key_predefined: false,
+  models: ["gpt-5.2-codex", "gpt-5.4", "gpt-5.1-codex-max"],
 }
 let frontendConfigCache: { value: FrontendConfig; timestamp: number } | null =
   null
@@ -85,6 +86,11 @@ export function useAuth() {
       ? frontendConfigCache.value.key_predefined
       : DEFAULT_FRONTEND_CONFIG.key_predefined,
   )
+  const [models, setModels] = useState<string[]>(
+    frontendConfigCache
+      ? frontendConfigCache.value.models
+      : DEFAULT_FRONTEND_CONFIG.models,
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -95,6 +101,9 @@ export function useAuth() {
         if (isMounted) {
           setIsAuthEnabled(config.auth_enabled)
           setKeyPredefined(config.key_predefined)
+          if (config.models.length > 0) {
+            setModels(config.models)
+          }
           setIsConfigLoading(false)
         }
 
@@ -136,6 +145,7 @@ export function useAuth() {
     isConfigLoading,
     isAuthEnabled,
     keyPredefined,
+    models,
     isAuthorized: !isAuthEnabled || Boolean(user),
   }
 }

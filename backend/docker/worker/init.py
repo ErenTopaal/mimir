@@ -97,7 +97,7 @@ def _resolve_codex_model(*, model_key: str, model_map: dict[str, str]) -> str:
     if key:
         # Allow passing a raw Codex model id via AGENT_ID.
         return key
-    return model_map.get('codex-gpt-5.2', 'gpt-5.2-2025-12-11')
+    return model_map.get('gpt-5.2-codex', 'gpt-5.2-codex')
 
 
 def _extract_fenced_json(text: str) -> str:
@@ -277,12 +277,18 @@ async def main() -> None:
         work_dir = Path(tmpdir)
         upload_zip_path, openai_token, key_mode = _unpack_bundle(bundle, work_dir)
 
-        if AUDIT_DIR.exists():
+        if AUDIT_DIR.exists():  # noqa: ASYNC240
             shutil.rmtree(AUDIT_DIR)
 
-        AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+        AUDIT_DIR.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+        audit_root = AUDIT_DIR.resolve()  # noqa: ASYNC240
         with zipfile.ZipFile(upload_zip_path, 'r') as zf:
-            zf.extractall(AUDIT_DIR)  # noqa: S202
+            for member in zf.infolist():
+                target = (AUDIT_DIR / member.filename).resolve()
+                if not target.is_relative_to(audit_root):
+                    logger.warning(f'Skipping path-traversal entry: {member.filename}')
+                    continue
+                zf.extract(member, AUDIT_DIR)
 
         logger.info('Extracted the bundle, running detect-only agent...')
         try:

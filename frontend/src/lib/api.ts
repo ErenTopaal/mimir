@@ -7,4 +7,4 @@ export const PATH_PREFIX =
 
 export const API_BASE = PATH_PREFIX
   ? `${PATH_PREFIX}/api`
-  : (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:27413")
+  : (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:50337")

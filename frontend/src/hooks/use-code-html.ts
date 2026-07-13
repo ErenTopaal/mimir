@@ -26,6 +26,7 @@ export function useCodeHtml({
   focusedAnnotationId,
 }: UseCodeHtmlParams) {
   const [html, setHtml] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [tabSize, setTabSize] = useState(4)
 
   const lineSeverityMap = useMemo(
@@ -45,6 +46,7 @@ export function useCodeHtml({
 
   useEffect(() => {
     let cancelled = false
+    setIsLoading(true)
     const detected = detectTabSize(code)
     setTabSize(detected)
     const lines = code.split("\n")
@@ -80,6 +82,9 @@ export function useCodeHtml({
               : "annotation-badge",
             "data-severity": start.severity,
             "data-annotation-id": start.id,
+            tabindex: "0",
+            title: "Click to view details",
+            role: "button",
           },
           children: [{ type: "text" as const, value: start.id }],
         }))
@@ -113,13 +118,23 @@ export function useCodeHtml({
       defaultColor: false,
       transformers: [lineTransformer],
     })
-      .then((result) => !cancelled && setHtml(result))
-      .catch(() => !cancelled && setHtml(""))
+      .then((result) => {
+        if (!cancelled) {
+          setHtml(result)
+          setIsLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHtml("")
+          setIsLoading(false)
+        }
+      })
 
     return () => {
       cancelled = true
     }
   }, [code, path, lineSeverityMap, focusedLines, annotationStarts])
 
-  return { html, tabSize, lineCount }
+  return { html, isLoading, tabSize, lineCount }
 }

@@ -224,11 +224,9 @@ class K8sBackend(BackendABC):
                     spec=client.V1PodSpec(
                         automount_service_account_token=False,
                         security_context=client.V1SecurityContext(
-                            # TODO(trixter-osec): consider in the future hardening and running as non-root?
-                            # run_as_user=65534,
-                            # run_as_group=65534,
-                            # run_as_non_root=True,
-                            # fs_group=65534, # not supported by the python client apparently...?
+                            run_as_user=65534,
+                            run_as_group=65534,
+                            run_as_non_root=True,
                         ),
                         restart_policy='Never',
                         containers=[

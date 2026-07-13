@@ -1,4 +1,5 @@
 import json
+import secrets
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -74,7 +75,7 @@ class ReportModel(BaseModel):
 
 
 def _require_auth(job: Job, token: str | None) -> None:
-    if not token or not job.result_token or token != job.result_token:
+    if not token or not job.result_token or not secrets.compare_digest(token, job.result_token):
         msg = 'Invalid results token'
         raise HTTPException(status_code=401, detail=msg)
 
@@ -86,19 +87,19 @@ def _load_report(report: str | None) -> dict[str, Any] | None:
     json_start = report.find('{')
     json_end = report.rfind('}')
     if json_start == -1 or json_end == -1:
-        logger.warning(f'Got report without json: {report!r}')
+        logger.warning(f'Got report without json (len={len(report)})')
         return None
 
     try:
         report_data = json.loads(report[json_start : json_end + 1])
     except json.JSONDecodeError:
-        logger.warning(f'Got report with invalid json: {report!r}')
+        logger.warning(f'Got report with invalid json (len={len(report)})')
         return None
 
     try:
         report_data = ReportModel.model_validate(report_data, extra='allow').model_dump(mode='json')
     except ValidationError:
-        logger.warning(f'Got report with invalid model: {report!r} ({report_data})')
+        logger.warning('Got report with invalid model schema')
         return None
 
     logger.info('Successfully loaded report')

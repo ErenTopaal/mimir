@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     BACKEND_SECRETS_BACKEND: str = 'server'
     BACKEND_SECRETS_BACKEND_ARGUMENTS: dict[str, str] = Field(default_factory=dict)
 
-    FRONTEND_PUBLIC_URL: str = 'http://127.0.0.1:34291'
-    BACKEND_PUBLIC_URL: str = 'http://127.0.0.1:27413'
+    FRONTEND_PUBLIC_URL: str = 'http://127.0.0.1:50300'
+    BACKEND_PUBLIC_URL: str = 'http://127.0.0.1:50337'
     BACKEND_JWT_SECRET: Secret[str]
     BACKEND_JWT_TTL_SECONDS: int = 60 * 60 * 24 * 30  # 30d
 
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     AUTH_BACKEND: str | None = None
     AUTH_BACKEND_ARGUMENTS: dict[str, str] = Field(default_factory=dict)
 
-    SNOWTRACE_API_KEY: str | None = None
+    SNOWTRACE_API_KEY: Secret[str] | None = None
 
     @field_validator('RABBITMQ_QUEUE_SUFFIX', mode='before')
     @classmethod
